@@ -36,6 +36,7 @@
 
 (require 'auth-source)
 (require 'json)
+(require 'seq)
 (require 'url)
 
 (defgroup org-github nil
@@ -47,11 +48,73 @@
 
 If nil, org-github will attempt to use an appropriate value from
 .authinfo or .netrc."
-  :group 'org-jira
+  :group 'org-github
   :type 'string)
+
+(defcustom org-github-username nil
+  "Your Github username.
+
+If nil, org-github will attempt to use an appropriate value from
+.authinfo or .netrc."
+  :group 'org-github
+  :type 'string)
+
+(defvar org-github-buffer "*github*"
+  "Buffer to display Github issues.")
 
 (defvar org-github--rate-limit-remaining nil
   "Remaining API requests permitted by rate-limiting.")
+
+;;;###autoload
+(defun org-github-my-issues ()
+  "Show current user issues in a buffer."
+  (interactive)
+  (message "Retrieving issues...")
+  (org-github--retrieve
+   "GET" "/user/issues" nil
+   (lambda (data)
+     (switch-to-buffer-other-window org-github-buffer)
+     (erase-buffer)
+     (org-mode)
+     (org-github--insert-issues data))))
+
+(defun org-github--group-and-sort-issues (issues)
+  "Group ISSUES according to repo and sort by issue number."
+  (let ((sorted-issues
+         (seq-sort (lambda (issue1 issue2)
+                     (< (cdr (assoc 'number issue1))
+                        (cdr (assoc 'number issue2))))
+                   issues)))
+    (seq-group-by (lambda (issue)
+                    (cdr (assoc 'full_name
+                                (cdr (assoc 'repository issue)))))
+                  sorted-issues)))
+
+(defun org-github--insert-issues (issues)
+  "Insert ISSUES (as returned by the Github API), grouped by repository."
+  (seq-do #'org-github--insert-issue-group
+          (org-github--group-and-sort-issues issues)))
+
+(defun org-github--insert-issue-group (group)
+  "Insert GROUP as an org item.
+
+GROUP should be a pair of (TITLE . ISSUES), where TITLE is the
+heading under which to group the issues and ISSUES is a list of
+issues as returned by the Github API."
+  (let ((title (car group))
+        (issues (cdr group)))
+    (org-insert-heading)
+    (insert title)
+    (newline)
+    (let ((issue-beg (point)))
+      (seq-do #'org-github--insert-issue issues)
+      (org-map-region #'org-demote issue-beg (point)))))
+
+(defun org-github--insert-issue (issue)
+  "Insert ISSUE (as returned by the Github API) as an item."
+  (org-insert-heading)
+  (insert (cdr (assoc 'title issue)))
+  (newline))
 
 (defun org-github--get-access-token ()
   "Get the Github API access token for the user."
@@ -59,11 +122,20 @@ If nil, org-github will attempt to use an appropriate value from
       (setq org-github-access-token
             (ignore-errors
               (funcall
-               (plist-get (car (auth-source-search :host "github.com"
-                                                   :type 'netrc))
-                          :secret))))
-      (user-error
-       "Github access token must be set")))
+               (plist-get (org-github--netrc-auth) :secret))))
+      (user-error "Github access token must be set")))
+
+(defun org-github--get-username ()
+  "Get the Github username for the user."
+  (or org-github-username
+      (setq org-github-username
+            (ignore-errors
+              (plist-get (org-github--netrc-auth) :user)))
+      (user-error "Github username must be set")))
+
+(defun org-github--netrc-auth ()
+  "Get the netrc or authinfo information for Github as a plist, if it exists."
+  (car (auth-source-search :host "github.com" :type 'netrc)))
 
 (defun org-github--retrieve (method endpoint data callback)
   "Send an API request with METHOD to the Github API at ENDPOINT.
@@ -85,6 +157,8 @@ CALLBACK is called with the parsed request results."
   (let ((err (plist-get status :error)))
     (when err
       (error "Github API Error: %s" err)))
+  ;; TODO: Erase, for debugging only
+  (setq org-github-last-response (buffer-string))
   (save-excursion
     (ignore-errors
       (re-search-forward "X-RateLimit-Remaining: \\([0-9]+\\)")
