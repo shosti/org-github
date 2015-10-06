@@ -82,6 +82,7 @@ STUBBED-RESPONSE corresponds to a file in the fixtures directory."
     (save-excursion
       (org-github-my-issues)
       (switch-to-buffer org-github-buffer)
+      (should org-github-minor-mode)
       (org-github--should-equal-fixture "user-issues.org"))))
 
 (ert-deftest org-github-group-and-sort ()

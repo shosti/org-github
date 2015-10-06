@@ -66,6 +66,13 @@ If nil, org-github will attempt to use an appropriate value from
   "Remaining API requests permitted by rate-limiting.")
 
 ;;;###autoload
+(define-minor-mode org-github-minor-mode
+  "Minor mode for interacting with Github issues through org mode."
+  :group 'org
+  (setq-local org-todo-keywords
+              '((sequence "OPEN" "CLOSED"))))
+
+;;;###autoload
 (defun org-github-my-issues ()
   "Show current user issues in a buffer."
   (interactive)
@@ -76,18 +83,19 @@ If nil, org-github will attempt to use an appropriate value from
      (switch-to-buffer-other-window org-github-buffer)
      (erase-buffer)
      (org-mode)
+     (org-github-minor-mode)
      (org-github--insert-issues data))))
 
 (defun org-github--group-and-sort-issues (issues)
   "Group ISSUES according to repo and sort by issue number."
   (let ((sorted-issues
          (seq-sort (lambda (issue1 issue2)
-                     (< (cdr (assoc 'number issue1))
-                        (cdr (assoc 'number issue2))))
+                     (< (cdr (assq 'number issue1))
+                        (cdr (assq 'number issue2))))
                    issues)))
     (seq-group-by (lambda (issue)
-                    (cdr (assoc 'full_name
-                                (cdr (assoc 'repository issue)))))
+                    (cdr (assq 'full_name
+                                (cdr (assq 'repository issue)))))
                   sorted-issues)))
 
 (defun org-github--insert-issues (issues)
@@ -108,13 +116,23 @@ issues as returned by the Github API."
     (newline)
     (let ((issue-beg (point)))
       (seq-do #'org-github--insert-issue issues)
-      (org-map-region #'org-demote issue-beg (point)))))
+      (org-map-region #'org-demote issue-beg (point)))
+    (org-global-cycle 2)))
 
 (defun org-github--insert-issue (issue)
-  "Insert ISSUE (as returned by the Github API) as an item."
-  (org-insert-heading)
-  (insert (cdr (assoc 'title issue)))
-  (newline))
+  "Insert ISSUE (as returned by the Github API) as a top-level item."
+  (insert "* ")
+  (insert (upcase (cdr (assq 'state issue))))
+  (insert " ")
+  (org-insert-link nil (cdr (assq 'html_url issue)) (cdr (assq 'title issue)))
+  (let ((body (cdr (assq 'body issue))))
+    (when (> (length body) 0)
+      (newline)
+      (insert body)))
+  (newline)
+  (when (> (cdr (assq 'comments issue)) 0)
+    (insert "** Comments...")
+    (newline)))
 
 (defun org-github--get-access-token ()
   "Get the Github API access token for the user."
@@ -157,8 +175,6 @@ CALLBACK is called with the parsed request results."
   (let ((err (plist-get status :error)))
     (when err
       (error "Github API Error: %s" err)))
-  ;; TODO: Erase, for debugging only
-  (setq org-github-last-response (buffer-string))
   (save-excursion
     (ignore-errors
       (re-search-forward "X-RateLimit-Remaining: \\([0-9]+\\)")

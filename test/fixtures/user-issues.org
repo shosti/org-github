@@ -1,0 +1,5 @@
+* shosti/org-github
+** OPEN [[https://github.com/shosti/org-github/issues/1][This is a sample issue]]
+Something
+*** Comments...
+** OPEN [[https://github.com/shosti/org-github/issues/2][This is another sample issue]]
