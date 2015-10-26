@@ -58,6 +58,30 @@ STUBBED-RESPONSE corresponds to a file in the fixtures directory."
      ,@body
      (advice-remove #'url-retrieve :stubbed-web-request)))
 
+(defmacro with-org-snippet (snippet &rest body)
+  "Use SNIPPET to test BODY in a fresh `org-mode' buffer.
+
+The position of the cursor in SNIPPET can be specified by using
+square brackets.  The first instance of square brackets in
+SNIPPET specifies the cursor position (the brackets will be
+erased).  For instance, \"f[o]o\" will position the cursor before
+the first \"o\" and erase the brackets."
+  (declare (indent 1))
+  `(progn
+     (with-temp-buffer
+       (insert ,snippet)
+       (goto-char (point-min))
+       (when (looking-at-p "\n")
+         (delete-char +1))
+       (when (search-forward-regexp "\\[.\\]" nil 'noerror)
+         (delete-char -1)
+         (backward-char)
+         (delete-char -1))
+       (org-mode)
+       (show-all)
+       (org-github-mode)
+       ,@body)))
+
 (defun org-github--should-equal-fixture (f)
   "Assert that current buffer is equal to F (a fixture file)."
   (let ((fname (concat org-github--fixtures-dir f)))
@@ -82,8 +106,34 @@ STUBBED-RESPONSE corresponds to a file in the fixtures directory."
     (save-excursion
       (org-github-my-issues)
       (switch-to-buffer org-github-buffer)
-      (should org-github-minor-mode)
-      (org-github--should-equal-fixture "user-issues.org"))))
+      (should org-github-mode)
+      (org-github--should-equal-fixture "user-issues.org")
+      (show-all)
+      (goto-char (point-min))
+      (search-forward "Comments...")
+      (org-github-cycle)
+      (org-github--should-equal-fixture "user-issues-expanded.org"))))
+
+(ert-deftest org-github-comments-header ()
+  (with-org-snippet "
+* s[h]osti/org-github
+** OPEN [[https://github.com/shosti/org-github/issues/1][This is a sample issue]]
+Something
+*** Comments..."
+    (should-not (org-github--comments-header-p (org-element-at-point))))
+  (with-org-snippet "
+* shosti/org-github
+** OPEN [[https://github.com/shosti/org-github/issues/1][This is a sample issue]]
+Something
+*** C[o]mments..."
+    (should (org-github--comments-header-p (org-element-at-point))))
+  (with-org-snippet "
+* shosti/org-github
+** OPEN [[https://github.com/shosti/org-github/issues/1][This is a sample issue]]
+Something
+*** C[o]mments
+**** someone"
+    (should-not (org-github--comments-header-p (org-element-at-point)))))
 
 (ert-deftest org-github-group-and-sort ()
   (let ((got (org-github--group-and-sort-issues
@@ -95,7 +145,7 @@ STUBBED-RESPONSE corresponds to a file in the fixtures directory."
                  (repository . ((full_name . "owner/repo1"))))
                 ((name . "repo2issue1")
                  (number . 1)
-                 (repository . ((full_name . "owner/repo2")))) ])))
+                 (repository . ((full_name . "owner/repo2"))))])))
     (should (equal (seq-map #'car got) '("owner/repo1" "owner/repo2")))
     (should (equal (seq-map (lambda (issue) (cdr (assoc 'name issue)))
                             (cdr (assoc "owner/repo1" got)))

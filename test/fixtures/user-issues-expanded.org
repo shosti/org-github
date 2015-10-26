@@ -7,7 +7,25 @@
 :comments_url: https://api.github.com/repos/shosti/org-github/issues/1/comments
 :END:
 Something
-*** Comments...
+*** Comments
+**** [[https://github.com/shosti/org-github/issues/1#issuecomment-143610036][shosti]]
+:PROPERTIES:
+:url:      https://api.github.com/repos/shosti/org-github/issues/comments/143610036
+:created_at: 2015-09-28T01:01:49Z
+:updated_at: 2015-09-28T01:01:49Z
+:END:
+A comment
+**** [[https://github.com/shosti/org-github/issues/1#issuecomment-152905891][shosti]]
+:PROPERTIES:
+:url:      https://api.github.com/repos/shosti/org-github/issues/comments/152905891
+:created_at: 2015-11-02T04:00:40Z
+:updated_at: 2015-11-02T04:01:03Z
+:END:
+Another comment!
+
+```
+This one has a code snippet!
+```
 ** OPEN [[https://github.com/shosti/org-github/issues/2][This is another sample issue]]
 :PROPERTIES:
 :url:      https://api.github.com/repos/shosti/org-github/issues/2

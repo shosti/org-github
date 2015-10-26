@@ -36,6 +36,7 @@
 
 (require 'auth-source)
 (require 'json)
+(require 'org)
 (require 'seq)
 (require 'url)
 
@@ -65,9 +66,17 @@ If nil, org-github will attempt to use an appropriate value from
 (defvar org-github--rate-limit-remaining nil
   "Remaining API requests permitted by rate-limiting.")
 
+(defvar org-github-mode-map
+  (let ((keymap (make-sparse-keymap)))
+    (org-defkey keymap [remap org-cycle] #'org-github-cycle)
+    keymap)
+  "Keymap used by `org-github-mode'.")
+
+
 ;;;###autoload
-(define-minor-mode org-github-minor-mode
+(define-minor-mode org-github-mode
   "Minor mode for interacting with Github issues through org mode."
+  nil nil org-github-mode-map
   :group 'org
   (setq-local org-todo-keywords
               '((sequence "OPEN" "CLOSED"))))
@@ -83,8 +92,24 @@ If nil, org-github will attempt to use an appropriate value from
      (switch-to-buffer-other-window org-github-buffer)
      (erase-buffer)
      (org-mode)
-     (org-github-minor-mode)
+     (org-github-mode)
      (org-github--insert-issues data))))
+
+(defun org-github-cycle (&optional arg)
+  "Visibility cycling for Org-mode, with github actions taken into account.
+
+See documentation for `org-cycle' for more details, including ARG
+usage."
+  (interactive)
+  (if (org-github--comments-header-p (org-element-at-point))
+      (org-github--insert-comments (org-entry-get-with-inheritance "comments_url")
+                                   (line-number-at-pos))
+    (org-cycle arg)))
+
+(defun org-github--comments-header-p (elem)
+  "Return non-nil if ELEM is a github issue comments header."
+  (and (eq (car elem) 'headline)
+       (equal (plist-get (cadr elem) :title) "Comments...")))
 
 (defun org-github--group-and-sort-issues (issues)
   "Group ISSUES according to repo and sort by issue number."
@@ -95,11 +120,38 @@ If nil, org-github will attempt to use an appropriate value from
                    issues)))
     (seq-group-by (lambda (issue)
                     (cdr (assq 'full_name
-                                (cdr (assq 'repository issue)))))
+                               (cdr (assq 'repository issue)))))
                   sorted-issues)))
+
+(defun org-github--insert-comments (comments-url line)
+  (let ((buffer (current-buffer)))
+    (goto-line line)
+    (beginning-of-line)
+    (search-forward "Comments")
+    (kill-line)
+    (newline)
+    (insert "Loading...")
+    (org-github--retrieve "GET" comments-url nil
+                          (lambda (comments)
+                            (with-current-buffer buffer
+                              (goto-line line)
+                              (forward-line)
+                              (beginning-of-line)
+                              (kill-line)
+                              (let ((beg (point)))
+                                (seq-do #'org-github--insert-comment comments)
+                                (org-map-region #'org-demote beg (point))))))))
+
+(defun org-github--insert-comment (comment)
+  (org-insert-heading)
+  (org-insert-link nil (cdr (assq 'html_url comment)) (cdr (assq 'login (cdr (assq 'user comment)))))
+  (newline)
+  (insert (org-github--fix-body (cdr (assq 'body comment))))
+  (org-github--set-properties comment))
 
 (defun org-github--insert-issues (issues)
   "Insert ISSUES (as returned by the Github API), grouped by repository."
+  (show-all)
   (seq-do #'org-github--insert-issue-group
           (org-github--group-and-sort-issues issues)))
 
@@ -120,7 +172,7 @@ issues as returned by the Github API."
     (org-global-cycle 2)))
 
 (defun org-github--insert-issue (issue)
-  "Insert ISSUE (as returned by the Github API) as a top-level item."
+  "Insert ISSUE (as returned by the Github API) as an org item."
   (insert "* ")
   (insert (upcase (cdr (assq 'state issue))))
   (insert " ")
@@ -130,9 +182,24 @@ issues as returned by the Github API."
       (newline)
       (insert body)))
   (newline)
+  (org-github--set-properties issue '(comments_url))
   (when (> (cdr (assq 'comments issue)) 0)
     (insert "** Comments...")
     (newline)))
+
+(defun org-github--set-properties (object &optional extra-props)
+  "Set the properties of the current org item according to OBJECT.
+
+OBJECT should be a Github API response object.  The properties
+url, created_at, and updated_at will always be set; in addition,
+all of the properties in EXTRA-PROPS (a list of symbols) will
+also be set."
+  (seq-do (lambda (prop)
+            (org-set-property (symbol-name prop) (cdr (assq prop object))))
+          (append '(url created_at updated_at) extra-props)))
+
+(defun org-github--fix-body (body)
+  (replace-regexp-in-string "\r" "" body))
 
 (defun org-github--get-access-token ()
   "Get the Github API access token for the user."
@@ -155,6 +222,9 @@ issues as returned by the Github API."
   "Get the netrc or authinfo information for Github as a plist, if it exists."
   (car (auth-source-search :host "github.com" :type 'netrc)))
 
+;; TODO: For dev only, remove soon
+(defvar org-github-last-response)
+
 (defun org-github--retrieve (method endpoint data callback)
   "Send an API request with METHOD to the Github API at ENDPOINT.
 
@@ -165,10 +235,11 @@ CALLBACK is called with the parsed request results."
         (url-request-extra-headers (list
                                     (cons "Authorization"
                                           (concat "token " (org-github--get-access-token)))
-                                    (cons "Accept" "application/vnd.github.v3+json"))))
-    (url-retrieve (concat "https://api.github.com" endpoint)
-                  #'org-github--parse-response
-                  (list callback))))
+                                    (cons "Accept" "application/vnd.github.v3+json")))
+        (url (cond ((string-prefix-p "https://" endpoint) endpoint)
+                   ((string-prefix-p "/" endpoint) (concat "https://api.github.com" endpoint))
+                   (t (error "invalid endpoint: %s" endpoint)))))
+    (url-retrieve url #'org-github--parse-response (list callback))))
 
 (defun org-github--parse-response (status callback)
   "Parse API response (according to STATUS) and call CALLBACK with parsed results."
@@ -180,6 +251,7 @@ CALLBACK is called with the parsed request results."
       (re-search-forward "X-RateLimit-Remaining: \\([0-9]+\\)")
       (setq org-github--rate-limit-remaining
             (string-to-number (match-string 1)))))
+  (setq org-github-last-response (buffer-string))
   (forward-paragraph)
   (let ((parsed (json-read)))
     (funcall callback parsed)))
