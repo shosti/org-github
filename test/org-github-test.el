@@ -152,6 +152,6 @@ Something
                    '("repo1issue1")))
     (should (equal (seq-map (lambda (issue) (cdr (assoc 'name issue)))
                             (cdr (assoc "owner/repo2" got)))
-                   '("repo2issue1" "repo2issue2")))))
+                   '("repo2issue2" "repo2issue1")))))
 
 ;;; org-github-test.el ends here

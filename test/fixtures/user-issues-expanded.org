@@ -1,4 +1,11 @@
 * shosti/org-github
+** OPEN [[https://github.com/shosti/org-github/issues/2][This is another sample issue]]
+:PROPERTIES:
+:url:      https://api.github.com/repos/shosti/org-github/issues/2
+:created_at: 2015-10-04T23:59:09Z
+:updated_at: 2015-10-04T23:59:09Z
+:comments_url: https://api.github.com/repos/shosti/org-github/issues/2/comments
+:END:
 ** OPEN [[https://github.com/shosti/org-github/issues/1][This is a sample issue]]
 :PROPERTIES:
 :url:      https://api.github.com/repos/shosti/org-github/issues/1
@@ -26,10 +33,3 @@ Another comment!
 ```
 This one has a code snippet!
 ```
-** OPEN [[https://github.com/shosti/org-github/issues/2][This is another sample issue]]
-:PROPERTIES:
-:url:      https://api.github.com/repos/shosti/org-github/issues/2
-:created_at: 2015-10-04T23:59:09Z
-:updated_at: 2015-10-04T23:59:09Z
-:comments_url: https://api.github.com/repos/shosti/org-github/issues/2/comments
-:END:

@@ -115,7 +115,7 @@ usage."
   "Group ISSUES according to repo and sort by issue number."
   (let ((sorted-issues
          (seq-sort (lambda (issue1 issue2)
-                     (< (cdr (assq 'number issue1))
+                     (> (cdr (assq 'number issue1))
                         (cdr (assq 'number issue2))))
                    issues)))
     (seq-group-by (lambda (issue)
