@@ -55,8 +55,9 @@ STUBBED-RESPONSE corresponds to a file in the fixtures directory."
                          (error "%s does not exist" response-file)))
                      (apply callback nil cbargs)))
                  '((name . :stubbed-web-request)))
-     ,@body
-     (advice-remove #'url-retrieve :stubbed-web-request)))
+     (unwind-protect
+         ,@body
+       (advice-remove #'url-retrieve :stubbed-web-request))))
 
 (defmacro with-org-snippet (snippet &rest body)
   "Use SNIPPET to test BODY in a fresh `org-mode' buffer.
