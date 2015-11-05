@@ -177,8 +177,12 @@ issues as returned by the Github API."
   (insert (upcase (cdr (assq 'state issue))))
   (insert " ")
   (org-insert-link nil (cdr (assq 'html_url issue)) (cdr (assq 'title issue)))
+  (sit-for 0) ; Workaround for #21818
+  (org-set-tags-to (org-github--tags issue))
+  (end-of-line)
   (let ((body (cdr (assq 'body issue))))
     (when (> (length body) 0)
+      (end-of-line)
       (newline)
       (insert body)))
   (newline)
@@ -197,6 +201,10 @@ also be set."
   (seq-do (lambda (prop)
             (org-set-property (symbol-name prop) (cdr (assq prop object))))
           (append '(url created_at updated_at) extra-props)))
+
+(defun org-github--tags (object)
+  (seq-map (lambda (tag) (cdr (assq 'name tag)))
+           (cdr (assq 'labels object))))
 
 (defun org-github--fix-body (body)
   (replace-regexp-in-string "\r" "" body))
