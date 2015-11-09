@@ -70,8 +70,7 @@ If nil, org-github will attempt to use an appropriate value from
   (let ((keymap (make-sparse-keymap)))
     (org-defkey keymap [remap org-cycle] #'org-github-cycle)
     keymap)
-  "Keymap used by `org-github-mode'.")
-
+  "Keymap for org-github mode.")
 
 ;;;###autoload
 (define-minor-mode org-github-mode
@@ -124,6 +123,7 @@ usage."
                   sorted-issues)))
 
 (defun org-github--insert-comments (comments-url line)
+  "Insert comments for COMMENTS-URL as org items at LINE."
   (let ((buffer (current-buffer)))
     (goto-line line)
     (beginning-of-line)
@@ -143,6 +143,7 @@ usage."
                                 (org-map-region #'org-demote beg (point))))))))
 
 (defun org-github--insert-comment (comment)
+  "Insert COMMENT (as returned by the Github API) as an org item."
   (org-insert-heading)
   (org-insert-link nil (cdr (assq 'html_url comment)) (cdr (assq 'login (cdr (assq 'user comment)))))
   (newline)
@@ -210,10 +211,12 @@ also be set."
           (append '(url created_at updated_at) extra-props)))
 
 (defun org-github--tags (object)
+  "Get tags for OBJECT (returned by the Github API)."
   (seq-map (lambda (tag) (cdr (assq 'name tag)))
            (cdr (assq 'labels object))))
 
 (defun org-github--fix-body (body)
+  "Post-process BODY (as returned by the Github API) for use with org-github."
   (replace-regexp-in-string "\r" "" body))
 
 (defun org-github--get-access-token ()
@@ -253,7 +256,7 @@ CALLBACK is called with the parsed request results."
                                     (cons "Accept" "application/vnd.github.v3+json")))
         (url (cond ((string-prefix-p "https://" endpoint) endpoint)
                    ((string-prefix-p "/" endpoint) (concat "https://api.github.com" endpoint))
-                   (t (error "invalid endpoint: %s" endpoint)))))
+                   (t (error "Invalid endpoint: %s" endpoint)))))
     (url-retrieve url #'org-github--parse-response (list callback))))
 
 (defun org-github--parse-response (status callback)
