@@ -48,7 +48,8 @@ STUBBED-RESPONSE corresponds to a file in the fixtures directory."
                                    "https://api\\.github\\.com" "" url))
                             (response-file
                              (concat org-github--fixtures-dir
-                                     (concat (replace-regexp-in-string "/" "-" path)
+                                     (concat (or url-request-method "GET")
+                                             (replace-regexp-in-string "/" "-" path)
                                              ".response"))))
                        (if (file-exists-p response-file)
                            (insert-file-contents response-file)
@@ -115,6 +116,19 @@ the first \"o\" and erase the brackets."
       (org-github-cycle)
       (org-github--should-equal-fixture "user-issues-expanded.org"))))
 
+(ert-deftest org-github-create-new-issue ()
+  (with-stubbed-url-retrieve
+    (switch-to-buffer "*github-test*")
+    (erase-buffer)
+    (insert-file-contents (concat org-github--fixtures-dir "new-issue.org"))
+    (org-mode)
+    (org-github-mode)
+    (show-all)
+    (goto-char (point-min))
+    (search-forward "A problem")
+    (org-ctrl-c-ctrl-c)
+    (org-github--should-equal-fixture "new-issue-after-create.org")))
+
 (ert-deftest org-github-comments-header ()
   (with-org-snippet "
 * s[h]osti/org-github
@@ -143,6 +157,47 @@ Something
     (should (equal (org-get-todo-state) "OPEN"))
     (org-todo)
     (should (equal (org-get-todo-state) "CLOSED"))))
+
+(ert-deftest org-github-at-new-issue-p ()
+  (with-org-snippet "
+* shosti/org-github
+:PROPERTIES:
+:og-type:  repo
+:END:
+Organize your Github issues with org-mode
+** Another [p]roblem, this time from org-github!
+** This issue was already there
+:PROPERTIES:
+:og-type:  issue
+:END:"
+    (should (org-github--at-new-issue-p (point))))
+
+  (with-org-snippet "
+* shosti/org-github
+Organize your Github issues with org-mode
+** Another [p]roblem, this time from org-github!"
+    (should-not (org-github--at-new-issue-p (point))))
+
+  (with-org-snippet "
+* sho[s]ti/org-github
+:PROPERTIES:
+:og-type:  repo
+:END:
+Organize your Github issues with org-mode
+** Another problem, this time from org-github!"
+    (should-not (org-github--at-new-issue-p (point))))
+
+  (with-org-snippet "
+* shosti/org-github
+:PROPERTIES:
+:og-type:  repo
+:END:
+Organize your Github issues with org-mode
+** Another [p]roblem, this time from org-github!
+:PROPERTIES:
+:og-type:  issue
+:END:"
+    (should-not (org-github--at-new-issue-p (point)))))
 
 (ert-deftest org-github-group-and-sort ()
   (let ((got (org-github--group-and-sort-issues

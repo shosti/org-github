@@ -7,7 +7,7 @@
 ;; URL: http://github.com/shosti/org-github
 ;; Version: 0.0.1
 ;; Created: 27 Sep 2015
-;; Package-Requires: ((emacs "24") (seq "1.9"))
+;; Package-Requires: ((emacs "24") (seq "1.9") (s "1.10.0"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,6 +37,7 @@
 (require 'auth-source)
 (require 'json)
 (require 'org)
+(require 's)
 (require 'seq)
 (require 'url)
 
@@ -95,21 +96,86 @@ If nil, org-github will attempt to use an appropriate value from
      (org-github-mode)
      (org-github--insert-issues data))))
 
+(defun org-github-update (&optional point)
+  "Intelligently update Github issue at POINT."
+  (when org-github-mode
+    (let ((point (or point (point))))
+      (if (org-github--at-new-issue-p point)
+          (progn (org-github--create-issue point)
+                 t)
+        (message "Updating existing issues not implemented yet")))))
+
+(add-hook 'org-ctrl-c-ctrl-c-hook #'org-github-update)
+
 (defun org-github-cycle (&optional arg)
   "Visibility cycling for Org-mode, with github actions taken into account.
 
 See documentation for `org-cycle' for more details, including ARG
 usage."
   (interactive)
-  (if (org-github--comments-header-p (org-element-at-point))
+  (if (and org-github-mode (org-github--comments-header-p (org-element-at-point)))
       (org-github--insert-comments (org-entry-get-with-inheritance "comments_url")
                                    (line-number-at-pos))
     (org-cycle arg)))
+
+(defun org-github--create-issue (point)
+  "Create Github issue, reading the data at POINT."
+  (save-excursion
+    (goto-char point)
+    (org-back-to-heading)
+    (let ((issue-beg (point)))
+      (org-up-heading-all 1)
+      (let ((type (org-entry-get (point) "og-type"))
+            (repo-url (org-entry-get (point) "url")))
+        (unless (equal type "repo")
+          (error "Invalid format for Github issue item"))
+        (goto-char issue-beg)
+        (org-github--post-issue (concat repo-url "/issues") (org-element-at-point) issue-beg)))))
+
+(defun org-github--post-issue (url elem issue-beg)
+  "Post new issue to URL.
+
+Data ELEM should be in org-element format.  ISSUE-BEG should be
+the point at which the issue begins."
+  (let ((buffer (current-buffer))
+        (title (org-element-property :title elem))
+        (body (org-github--extract-body elem))
+        (labels (seq-into (org-element-property :tags elem) 'vector)))
+    (let ((json-body (json-encode
+                      `((title . ,title)
+                        (body . ,body)
+                        (labels . ,labels)))))
+      (org-github--retrieve "POST" url json-body
+                            (lambda (issue)
+                              (with-current-buffer buffer
+                                (goto-char issue-beg)
+                                ;; TODO: Shouldn't edit kill ring?
+                                (org-cut-subtree)
+                                (newline)
+                                (previous-line)
+                                (org-github--insert-issue issue)
+                                (kill-line)
+                                (org-map-region #'org-demote issue-beg (point))))))))
+
+(defun org-github--extract-body (elem)
+  "Extract the text body for ELEM, a Github issue."
+  (let ((beg (org-element-property :contents-begin elem)))
+    (when beg
+      (let ((body (buffer-substring beg
+                                    (org-element-property :contents-end elem))))
+        (s-trim body)))))
 
 (defun org-github--comments-header-p (elem)
   "Return non-nil if ELEM is a github issue comments header."
   (and (eq (car elem) 'headline)
        (equal (plist-get (cadr elem) :title) "Comments...")))
+
+(defun org-github--at-new-issue-p (point)
+  "Return non-nil if POINT is currently at a new issue item."
+  (let ((current-type (org-entry-get point "og-type"))
+        (parent-type (org-entry-get point "og-type" 'inherit)))
+    (and (null current-type)
+         (equal parent-type "repo"))))
 
 (defun org-github--group-and-sort-issues (issues)
   "Group ISSUES according to repo and sort by issue number."

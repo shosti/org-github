@@ -1,0 +1,26 @@
+* [[https://github.com/shosti/org-github][shosti/org-github]]
+:PROPERTIES:
+:og-type:  repo
+:url:      https://api.github.com/repos/shosti/org-github
+:created_at: 2015-09-28T00:51:11Z
+:updated_at: 2015-10-04T23:58:50Z
+:END:
+Organize your Github issues with org-mode
+** OPEN [[https://github.com/shosti/org-github/issues/2][This is another sample issue]]
+:PROPERTIES:
+:og-type:  issue
+:url:      https://api.github.com/repos/shosti/org-github/issues/2
+:created_at: 2015-10-04T23:59:09Z
+:updated_at: 2015-10-04T23:59:09Z
+:comments_url: https://api.github.com/repos/shosti/org-github/issues/2/comments
+:assignee: shosti
+:END:
+** OPEN [[https://github.com/shosti/org-github/issues/4][A problem]]                                                :something:
+:PROPERTIES:
+:og-type:  issue
+:url:      https://api.github.com/repos/shosti/org-github/issues/4
+:created_at: 2015-11-09T04:53:17Z
+:updated_at: 2015-11-09T04:53:17Z
+:comments_url: https://api.github.com/repos/shosti/org-github/issues/4/comments
+:END:
+Something...
