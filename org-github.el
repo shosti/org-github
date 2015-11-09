@@ -163,13 +163,20 @@ heading under which to group the issues and ISSUES is a list of
 issues as returned by the Github API."
   (let ((title (car group))
         (issues (cdr group)))
-    (org-insert-heading)
-    (insert title)
-    (newline)
+    (org-github--insert-repo (cdr (assq 'repository (car issues))))
     (let ((issue-beg (point)))
       (seq-do #'org-github--insert-issue issues)
       (org-map-region #'org-demote issue-beg (point)))
     (org-global-cycle 2)))
+
+(defun org-github--insert-repo (repo)
+  "Insert REPO (as returned by the Github API) as an org item."
+  (insert "* ")
+  (org-insert-link nil (cdr (assq 'html_url repo)) (cdr (assq 'full_name repo)))
+  (newline)
+  (insert (cdr (assq 'description repo)))
+  (newline)
+  (org-github--set-properties repo))
 
 (defun org-github--insert-issue (issue)
   "Insert ISSUE (as returned by the Github API) as an org item."
