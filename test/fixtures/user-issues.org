@@ -6,7 +6,7 @@
 :updated_at: 2015-10-04T23:58:50Z
 :END:
 Organize your Github issues with org-mode
-** OPEN [[https://github.com/shosti/org-github/issues/2][This is another sample issue]]
+** OPEN This is another sample issue [[https://github.com/shosti/org-github/issues/2][#2]]
 :PROPERTIES:
 :og-type:  issue
 :url:      https://api.github.com/repos/shosti/org-github/issues/2
@@ -15,7 +15,7 @@ Organize your Github issues with org-mode
 :comments_url: https://api.github.com/repos/shosti/org-github/issues/2/comments
 :assignee: shosti
 :END:
-** OPEN [[https://github.com/shosti/org-github/issues/1][This is a sample issue]]                                     :wontfix:
+** OPEN This is a sample issue [[https://github.com/shosti/org-github/issues/1][#1]]                                  :wontfix:
 :PROPERTIES:
 :og-type:  issue
 :url:      https://api.github.com/repos/shosti/org-github/issues/1

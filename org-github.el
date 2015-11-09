@@ -248,10 +248,10 @@ issues as returned by the Github API."
 
 (defun org-github--insert-issue (issue)
   "Insert ISSUE (as returned by the Github API) as an org item."
-  (insert "* ")
-  (insert (upcase (cdr (assq 'state issue))))
-  (insert " ")
-  (org-insert-link nil (cdr (assq 'html_url issue)) (cdr (assq 'title issue)))
+  (insert "* " (upcase (cdr (assq 'state issue))) " "
+          (cdr (assq 'title issue)) " ")
+  (org-insert-link nil (cdr (assq 'html_url issue))
+                   (format "#%d" (cdr (assq 'number issue))))
   (sit-for 0) ; Workaround for #21818
   (org-set-tags-to (org-github--tags issue))
   (end-of-line)
@@ -263,7 +263,8 @@ issues as returned by the Github API."
   (newline)
   (org-github--set-properties issue 'issue '(comments_url))
   (when (cdr (assq 'assignee issue))
-    (org-set-property "assignee" (cdr (assq 'login (cdr (assq 'assignee issue))))))
+    (org-set-property "assignee"
+                      (cdr (assq 'login (cdr (assq 'assignee issue))))))
   (when (> (cdr (assq 'comments issue)) 0)
     (insert "** Comments...")
     (newline)))
