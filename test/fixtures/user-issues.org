@@ -1,5 +1,6 @@
 * [[https://github.com/shosti/org-github][shosti/org-github]]
 :PROPERTIES:
+:og-type:  repo
 :url:      https://api.github.com/repos/shosti/org-github
 :created_at: 2015-09-28T00:51:11Z
 :updated_at: 2015-10-04T23:58:50Z
@@ -7,6 +8,7 @@
 Organize your Github issues with org-mode
 ** OPEN [[https://github.com/shosti/org-github/issues/2][This is another sample issue]]
 :PROPERTIES:
+:og-type:  issue
 :url:      https://api.github.com/repos/shosti/org-github/issues/2
 :created_at: 2015-10-04T23:59:09Z
 :updated_at: 2015-10-04T23:59:09Z
@@ -14,6 +16,7 @@ Organize your Github issues with org-mode
 :END:
 ** OPEN [[https://github.com/shosti/org-github/issues/1][This is a sample issue]]                                     :wontfix:
 :PROPERTIES:
+:og-type:  issue
 :url:      https://api.github.com/repos/shosti/org-github/issues/1
 :created_at: 2015-09-28T01:01:46Z
 :updated_at: 2015-09-28T01:02:36Z

@@ -148,7 +148,7 @@ usage."
   (org-insert-link nil (cdr (assq 'html_url comment)) (cdr (assq 'login (cdr (assq 'user comment)))))
   (newline)
   (insert (org-github--fix-body (cdr (assq 'body comment))))
-  (org-github--set-properties comment))
+  (org-github--set-properties comment 'comment))
 
 (defun org-github--insert-issues (issues)
   "Insert ISSUES (as returned by the Github API), grouped by repository."
@@ -177,7 +177,7 @@ issues as returned by the Github API."
   (newline)
   (insert (cdr (assq 'description repo)))
   (newline)
-  (org-github--set-properties repo))
+  (org-github--set-properties repo 'repo))
 
 (defun org-github--insert-issue (issue)
   "Insert ISSUE (as returned by the Github API) as an org item."
@@ -194,18 +194,19 @@ issues as returned by the Github API."
       (newline)
       (insert body)))
   (newline)
-  (org-github--set-properties issue '(comments_url))
+  (org-github--set-properties issue 'issue '(comments_url))
   (when (> (cdr (assq 'comments issue)) 0)
     (insert "** Comments...")
     (newline)))
 
-(defun org-github--set-properties (object &optional extra-props)
+(defun org-github--set-properties (object type &optional extra-props)
   "Set the properties of the current org item according to OBJECT.
 
-OBJECT should be a Github API response object.  The properties
-url, created_at, and updated_at will always be set; in addition,
-all of the properties in EXTRA-PROPS (a list of symbols) will
-also be set."
+OBJECT should be a Github API response object of type
+TYPE (e.g. issue or repo).  The properties url, created_at, and
+updated_at will always be set; in addition, all of the properties
+in EXTRA-PROPS (a list of symbols) will also be set."
+  (org-set-property "og-type" (symbol-name type))
   (seq-do (lambda (prop)
             (org-set-property (symbol-name prop) (cdr (assq prop object))))
           (append '(url created_at updated_at) extra-props)))
