@@ -13,6 +13,7 @@ Organize your Github issues with org-mode
 :created_at: 2015-10-04T23:59:09Z
 :updated_at: 2015-10-04T23:59:09Z
 :comments_url: https://api.github.com/repos/shosti/org-github/issues/2/comments
+:assignee: shosti
 :END:
 ** OPEN [[https://github.com/shosti/org-github/issues/1][This is a sample issue]]                                     :wontfix:
 :PROPERTIES:
@@ -21,6 +22,7 @@ Organize your Github issues with org-mode
 :created_at: 2015-09-28T01:01:46Z
 :updated_at: 2015-09-28T01:02:36Z
 :comments_url: https://api.github.com/repos/shosti/org-github/issues/1/comments
+:assignee: shosti
 :END:
 Something
 *** Comments

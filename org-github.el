@@ -195,6 +195,8 @@ issues as returned by the Github API."
       (insert body)))
   (newline)
   (org-github--set-properties issue 'issue '(comments_url))
+  (when (cdr (assq 'assignee issue))
+    (org-set-property "assignee" (cdr (assq 'login (cdr (assq 'assignee issue))))))
   (when (> (cdr (assq 'comments issue)) 0)
     (insert "** Comments...")
     (newline)))
