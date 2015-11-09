@@ -136,6 +136,14 @@ Something
 **** someone"
     (should-not (org-github--comments-header-p (org-element-at-point)))))
 
+(ert-deftest org-github-todo-keywords ()
+  (with-org-snippet "
+* shosti/org-github
+** OPEN [A] problem"
+    (should (equal (org-get-todo-state) "OPEN"))
+    (org-todo)
+    (should (equal (org-get-todo-state) "CLOSED"))))
+
 (ert-deftest org-github-group-and-sort ()
   (let ((got (org-github--group-and-sort-issues
               '[((name . "repo2issue2")

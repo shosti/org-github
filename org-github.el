@@ -77,8 +77,9 @@ If nil, org-github will attempt to use an appropriate value from
   "Minor mode for interacting with Github issues through org mode."
   nil nil org-github-mode-map
   :group 'org
-  (setq-local org-todo-keywords
-              '((sequence "OPEN" "CLOSED"))))
+  (let ((org-todo-keywords (cons '(sequence "OPEN" "CLOSED") org-todo-keywords)))
+    (org-mode-restart))
+  (setq org-github-mode t))
 
 ;;;###autoload
 (defun org-github-my-issues ()
