@@ -12,6 +12,7 @@ Organize your Github issues with org-mode
 :url:      https://api.github.com/repos/shosti/org-github/issues/2
 :created_at: 2015-10-04T23:59:09Z
 :updated_at: 2015-10-04T23:59:09Z
+:number:   2
 :comments_url: https://api.github.com/repos/shosti/org-github/issues/2/comments
 :assignee: shosti
 :END:
@@ -21,6 +22,7 @@ Organize your Github issues with org-mode
 :url:      https://api.github.com/repos/shosti/org-github/issues/4
 :created_at: 2015-11-09T04:53:17Z
 :updated_at: 2015-11-09T04:53:17Z
+:number:   4
 :comments_url: https://api.github.com/repos/shosti/org-github/issues/4/comments
 :END:
 Something...

@@ -261,7 +261,7 @@ issues as returned by the Github API."
       (newline)
       (insert body)))
   (newline)
-  (org-github--set-properties issue 'issue '(comments_url))
+  (org-github--set-properties issue 'issue '(number comments_url))
   (when (cdr (assq 'assignee issue))
     (org-set-property "assignee"
                       (cdr (assq 'login (cdr (assq 'assignee issue))))))
@@ -278,7 +278,8 @@ updated_at will always be set; in addition, all of the properties
 in EXTRA-PROPS (a list of symbols) will also be set."
   (org-set-property "og-type" (symbol-name type))
   (seq-do (lambda (prop)
-            (org-set-property (symbol-name prop) (cdr (assq prop object))))
+            (org-set-property (symbol-name prop)
+                              (format "%s" (cdr (assq prop object)))))
           (append '(url created_at updated_at) extra-props)))
 
 (defun org-github--tags (object)
