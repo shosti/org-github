@@ -114,9 +114,30 @@ See documentation for `org-cycle' for more details, including ARG
 usage."
   (interactive)
   (if (and org-github-mode (org-github--comments-header-p (org-element-at-point)))
-      (org-github--insert-comments (org-entry-get-with-inheritance "comments_url")
-                                   (line-number-at-pos))
+      (org-github--insert-comments)
     (org-cycle arg)))
+
+(defun org-github--group-and-sort-issues (issues)
+  "Group ISSUES according to repo and sort by issue number.
+
+The result is an alist of (REPO . ISSUES), where REPO is a
+repository object (as returned by Github) and ISSUES is a sorted
+list of issues."
+  (let ((grouped-issues
+         (seq-group-by (lambda (issue)
+                         (cdr (assq 'full_name
+                                    (cdr (assq 'repository issue)))))
+                       issues)))
+    (seq-map (lambda (group)
+               (let* ((issues (cdr group))
+                      (repo (cdr (assq 'repository
+                                       (car issues)))))
+                 (cons repo
+                       (seq-sort (lambda (issue1 issue2)
+                                   (> (cdr (assq 'number issue1))
+                                      (cdr (assq 'number issue2))))
+                                 issues))))
+             grouped-issues)))
 
 (defun org-github--create-issue (point)
   "Create Github issue, reading the data at POINT."
@@ -126,36 +147,57 @@ usage."
     (let ((issue-beg (point)))
       (org-up-heading-all 1)
       (let ((type (org-entry-get (point) "og-type"))
-            (repo-url (org-entry-get (point) "url")))
+            (repo-url (org-entry-get (point) "url"))
+            (repo-name (org-entry-get (point) "full_name")))
         (unless (equal type "repo")
           (error "Invalid format for Github issue item"))
         (goto-char issue-beg)
-        (org-github--post-issue (concat repo-url "/issues") (org-element-at-point) issue-beg)))))
+        (org-github--post-issue repo-name
+                                (concat repo-url "/issues")
+                                (org-element-at-point))))))
 
-(defun org-github--post-issue (url elem issue-beg)
-  "Post new issue to URL.
+(defun org-github--post-issue (repo-name url elem)
+  "Post new issue for REPO-NAME to URL.
 
-Data ELEM should be in org-element format.  ISSUE-BEG should be
-the point at which the issue begins."
+Data ELEM should be in org-element format."
   (let ((buffer (current-buffer))
         (title (org-element-property :title elem))
         (body (org-github--extract-body elem))
-        (labels (seq-into (org-element-property :tags elem) 'vector)))
+        (labels (seq-into (org-element-property :tags elem) 'vector))
+        (level (org-element-property :level elem)))
     (let ((json-body (json-encode
                       `((title . ,title)
                         (body . ,body)
                         (labels . ,labels)))))
-      (org-github--retrieve "POST" url json-body
-                            (lambda (issue)
-                              (with-current-buffer buffer
-                                (goto-char issue-beg)
-                                ;; TODO: Shouldn't edit kill ring?
-                                (org-cut-subtree)
-                                (newline)
-                                (previous-line)
-                                (org-github--insert-issue issue)
-                                (kill-line)
-                                (org-map-region #'org-demote issue-beg (point))))))))
+      (org-github--retrieve
+       "POST" url json-body
+       (lambda (issue)
+         (with-current-buffer buffer
+           (let* ((issue-elem (org-github--find-issue title repo-name))
+                  (beg (org-element-property :begin issue-elem))
+                  (end (org-element-property :end issue-elem)))
+             (delete-region beg end)
+             (goto-char beg)
+             (insert (org-element-interpret-data
+                      (org-github--issue->elem issue level))))))))))
+
+(defun org-github--find-issue (title repo-name)
+  "Find the issue element with TITLE for repo REPO-NAME.
+
+Returns an org element.  Search takes place in the current
+buffer."
+  (or (org-element-map (org-element-parse-buffer) 'headline
+        (lambda (elem)
+          (when (and (equal (org-element-property :OG-TYPE elem) "repo")
+                     (equal (org-element-property :FULL_NAME elem) repo-name))
+            (org-element-map elem 'headline
+              (lambda (issue-elem)
+                (when (and (null (org-element-property :OG-TYPE issue-elem))
+                           (equal (car (org-element-property :title issue-elem)) title))
+                  issue-elem))
+              nil 'first-match)))
+        nil 'first-match)
+      (error "Could not find issue \"%s\" in the current buffer" title)))
 
 (defun org-github--extract-body (elem)
   "Extract the text body for ELEM, a Github issue."
@@ -177,22 +219,11 @@ the point at which the issue begins."
     (and (null current-type)
          (equal parent-type "repo"))))
 
-(defun org-github--group-and-sort-issues (issues)
-  "Group ISSUES according to repo and sort by issue number."
-  (let ((sorted-issues
-         (seq-sort (lambda (issue1 issue2)
-                     (> (cdr (assq 'number issue1))
-                        (cdr (assq 'number issue2))))
-                   issues)))
-    (seq-group-by (lambda (issue)
-                    (cdr (assq 'full_name
-                               (cdr (assq 'repository issue)))))
-                  sorted-issues)))
-
-(defun org-github--insert-comments (comments-url line)
-  "Insert comments for COMMENTS-URL as org items at LINE."
-  (let ((buffer (current-buffer)))
-    (goto-line line)
+(defun org-github--insert-comments ()
+  "Insert comments the github issue at point."
+  (let ((buffer (current-buffer))
+        (comments-url (org-entry-get-with-inheritance "comments_url"))
+        (issue-number (org-entry-get-with-inheritance "number")))
     (beginning-of-line)
     (search-forward "Comments")
     (kill-line)
@@ -201,86 +232,162 @@ the point at which the issue begins."
     (org-github--retrieve "GET" comments-url nil
                           (lambda (comments)
                             (with-current-buffer buffer
-                              (goto-line line)
-                              (forward-line)
-                              (beginning-of-line)
-                              (kill-line)
-                              (let ((beg (point)))
-                                (seq-do #'org-github--insert-comment comments)
-                                (org-map-region #'org-demote beg (point))))))))
+                              (org-github--update-comments comments issue-number))))))
 
-(defun org-github--insert-comment (comment)
-  "Insert COMMENT (as returned by the Github API) as an org item."
-  (org-insert-heading)
-  (org-insert-link nil (cdr (assq 'html_url comment)) (cdr (assq 'login (cdr (assq 'user comment)))))
-  (newline)
-  (insert (org-github--fix-body (cdr (assq 'body comment))))
-  (org-github--set-properties comment 'comment))
+(defun org-github--update-comments (comments issue-number)
+  "Insert COMMENTS into the org entry for ISSUE-NUMBER in the current buffer."
+  (let* ((issue-elem
+          (or (org-element-map (org-element-parse-buffer) 'headline
+                (lambda (elem)
+                  (when (and
+                         (equal (org-element-property :OG-TYPE elem)
+                                "issue")
+                         (equal (org-element-property :NUMBER elem)
+                                issue-number))
+                    elem))
+                nil 'first-match)
+              (error "Could not find issue %s in the current buffer"
+                     issue-number)))
+         (comments-elem
+          (or (org-element-map issue-elem 'headline
+                (lambda (elem)
+                  (let ((title (car (org-element-property :title elem))))
+                    (when (and (stringp title)
+                               (equal title "Comments"))
+                      elem)))
+                nil 'first-match)
+              (error "Could not find comments section for issue %s"
+                     issue-number))))
+    (let ((beg (org-element-property :begin comments-elem))
+          (end (org-element-property :end comments-elem))
+          (level (org-element-property :level comments-elem)))
+      (delete-region beg end)
+      (goto-char beg)
+      (insert (org-element-interpret-data
+               (org-github--comments->elem comments level))))))
 
 (defun org-github--insert-issues (issues)
   "Insert ISSUES (as returned by the Github API), grouped by repository."
-  (show-all)
-  (seq-do #'org-github--insert-issue-group
-          (org-github--group-and-sort-issues issues)))
+  (insert (org-element-interpret-data (org-github--issues->elem issues))))
 
-(defun org-github--insert-issue-group (group)
-  "Insert GROUP as an org item.
+(defun org-github--issues->elem (issues)
+  "Return an org-element parse tree representing ISSUES.
 
-GROUP should be a pair of (TITLE . ISSUES), where TITLE is the
-heading under which to group the issues and ISSUES is a list of
-issues as returned by the Github API."
-  (let ((title (car group))
-        (issues (cdr group)))
-    (org-github--insert-repo (cdr (assq 'repository (car issues))))
-    (let ((issue-beg (point)))
-      (seq-do #'org-github--insert-issue issues)
-      (org-map-region #'org-demote issue-beg (point)))
-    (org-global-cycle 2)))
+ISSUES is an object as returned by the Github API."
+  (append '(org-data nil)
+          (seq-map #'org-github--issue-group->elem
+                   (org-github--group-and-sort-issues issues))))
 
-(defun org-github--insert-repo (repo)
-  "Insert REPO (as returned by the Github API) as an org item."
-  (insert "* ")
-  (org-insert-link nil (cdr (assq 'html_url repo)) (cdr (assq 'full_name repo)))
-  (newline)
-  (insert (cdr (assq 'description repo)))
-  (newline)
-  (org-github--set-properties repo 'repo))
+(defun org-github--issue-group->elem (group &optional level)
+  "Return an org-element tree representing GROUP.
 
-(defun org-github--insert-issue (issue)
-  "Insert ISSUE (as returned by the Github API) as an org item."
-  (insert "* " (upcase (cdr (assq 'state issue))) " "
-          (cdr (assq 'title issue)) " ")
-  (org-insert-link nil (cdr (assq 'html_url issue))
-                   (format "#%d" (cdr (assq 'number issue))))
-  (sit-for 0) ; Workaround for #21818
-  (org-set-tags-to (org-github--tags issue))
-  (end-of-line)
-  (let ((body (cdr (assq 'body issue))))
-    (when (> (length body) 0)
-      (end-of-line)
-      (newline)
-      (insert body)))
-  (newline)
-  (org-github--set-properties issue 'issue '(number comments_url))
-  (when (cdr (assq 'assignee issue))
-    (org-set-property "assignee"
-                      (cdr (assq 'login (cdr (assq 'assignee issue))))))
-  (when (> (cdr (assq 'comments issue)) 0)
-    (insert "** Comments...")
-    (newline)))
+Group should be a (REPO . ISSUES) pair, representing a list of
+issues for a repo.
 
-(defun org-github--set-properties (object type &optional extra-props)
-  "Set the properties of the current org item according to OBJECT.
+LEVEL represents the org level at which the repo should be
+inserted (defaulting to level 1)."
+  (let* ((level (or level 1))
+         (repo (car group))
+         (issue-elems (seq-map (lambda (issue)
+                                 (org-github--issue->elem issue (1+ level)))
+                               (cdr group))))
+    `(headline (:title ((link (:raw-link ,(cdr (assq 'html_url repo)))
+                              ,(cdr (assq 'full_name repo))))
+                       :level ,level)
+               (section nil
+                        ,(org-github--props->elem
+                          (org-github--props repo 'repo '(full_name)))
+                        (paragraph nil
+                                   ,(cdr (assq 'description repo))))
+               ,@issue-elems)))
+
+(defun org-github--issue->elem (issue &optional level)
+  "Return an org-element tree representing ISSUE.
+
+ISSUE should be an object returned from the Github API.
+
+LEVEL represents the org level at which the repo should be
+inserted (defaulting to level 1)."
+  (let ((level (or level 1))
+        (props (append (org-github--props issue 'issue '(number comments_url))
+                       (when (cdr (assq 'assignee issue))
+                         (list
+                          (cons "assignee"
+                                (cdr (assq 'login (cdr (assq 'assignee issue)))))))))
+        (comments-section
+         (when (> (cdr (assq 'comments issue)) 0)
+           `(headline (:title "Comments..."
+                              :level ,(1+ level))))))
+    `(headline (:title (,(format "%s " (cdr (assq 'title issue)))
+                        (link (:raw-link ,(cdr (assq 'html_url issue)))
+                              ,(format "#%d" (cdr (assq 'number issue)))))
+                       :level ,level
+                       :tags ,(org-github--tags issue)
+                       :todo-keyword ,(upcase (cdr (assq 'state issue))))
+               (section nil
+                        ,(org-github--props->elem props)
+                        (paragraph nil
+                                   ,(org-github--fix-body
+                                     (cdr (assq 'body issue)))))
+               ,comments-section)))
+
+(defun org-github--comments->elem (comments level)
+  "Return an org-element parse tree representing COMMENTS.
+
+COMMENTS should be a list of comments returned from the Github
+API.  LEVEL is the header level at which to the comments should
+be inserted."
+  (let ((comment-elems (seq-map (lambda (comment)
+                                  (org-github--comment->elem comment (1+ level)))
+                                comments)))
+    `(headline (:title "Comments"
+                       :level ,level)
+               ,@comment-elems)))
+
+(defun org-github--comment->elem (comment level)
+  "Return an org-element parse tree representing COMMENT.
+
+LEVEL is the header level at which to the comments should be
+inserted."
+  (let ((props (org-github--props comment 'comment)))
+    `(headline (:title ((link (:raw-link ,(cdr (assq 'html_url comment)))
+                              ,(cdr (assq 'login (cdr (assq 'user comment))))))
+                       :level ,level)
+               (section nil
+                        ,(org-github--props->elem props)
+                        (paragraph nil
+                                   ,(org-github--fix-body
+                                     (cdr (assq 'body comment))))))))
+
+(defun org-github--props->elem (props)
+  "Return a property drawar for PROPS.
+
+Props should be an alist of (VAR . VALUE)."
+  (let ((prop-elems
+         (seq-map (lambda (prop)
+                    `(node-property
+                      (:key ,(car prop)
+                       :value ,(cdr prop))))
+                  props)))
+    `(property-drawer nil
+                      ,@prop-elems)))
+
+(defun org-github--props (object type &optional extra-props)
+  "Return a property drawer elem for OBJECT.
 
 OBJECT should be a Github API response object of type
-TYPE (e.g. issue or repo).  The properties url, created_at, and
-updated_at will always be set; in addition, all of the properties
-in EXTRA-PROPS (a list of symbols) will also be set."
-  (org-set-property "og-type" (symbol-name type))
-  (seq-do (lambda (prop)
-            (org-set-property (symbol-name prop)
-                              (format "%s" (cdr (assq prop object)))))
-          (append '(url created_at updated_at) extra-props)))
+TYPE (e.g. issue or repo, a symbol).  The properties url,
+created_at, and updated_at will always be set; in addition, all
+of the properties in EXTRA-PROPS (a list of symbols) will be
+set."
+  (cons (cons "og-type" (symbol-name type))
+        (seq-remove #'null
+                    (seq-map (lambda (prop)
+                               (let ((val (cdr (assq prop object))))
+                                 (when val
+                                  (cons (symbol-name prop)
+                                        (format "%s" val)))))
+                             (append '(url created_at updated_at) extra-props)))))
 
 (defun org-github--tags (object)
   "Get tags for OBJECT (returned by the Github API)."
@@ -289,7 +396,8 @@ in EXTRA-PROPS (a list of symbols) will also be set."
 
 (defun org-github--fix-body (body)
   "Post-process BODY (as returned by the Github API) for use with org-github."
-  (replace-regexp-in-string "\r" "" body))
+  (when body
+    (replace-regexp-in-string "\r" "" body)))
 
 (defun org-github--get-access-token ()
   "Get the Github API access token for the user."

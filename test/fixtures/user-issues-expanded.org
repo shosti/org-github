@@ -4,6 +4,7 @@
 :url:      https://api.github.com/repos/shosti/org-github
 :created_at: 2015-09-28T00:51:11Z
 :updated_at: 2015-10-04T23:58:50Z
+:full_name: shosti/org-github
 :END:
 Organize your Github issues with org-mode
 ** OPEN This is another sample issue [[https://github.com/shosti/org-github/issues/2][#2]]
