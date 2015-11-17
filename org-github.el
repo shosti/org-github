@@ -152,55 +152,86 @@ list of issues."
             (repo-name (org-entry-get (point) "full_name")))
         (unless (equal type "repo")
           (error "Invalid format for Github issue item"))
-        (goto-char issue-beg)
-        (org-github--post-issue repo-name
-                                (concat repo-url "/issues")
-                                (org-element-at-point))))))
+        (org-github--post-issue (org-github--issue-at-point point)
+                                repo-name
+                                (concat repo-url "/issues"))))))
 
-(defun org-github--post-issue (repo-name url elem)
-  "Post new issue for REPO-NAME to URL.
-
-Data ELEM should be in org-element format."
-  (let ((buffer (current-buffer))
-        (title (org-github--elem-title elem))
-        (issue (org-github--elem->issue elem))
-        (level (org-element-property :level elem)))
-    (org-github--retrieve "POST" url (json-encode issue)
+(defun org-github--post-issue (issue repo-name url)
+  "Post ISSUE, a new issue, to URL."
+  (let ((buffer (current-buffer)))
+    (org-github--retrieve
+     "POST" url (json-encode issue)
      (lambda (issue)
        (with-current-buffer buffer
-         (let* ((issue-elem (org-github--find-issue title repo-name))
+         (let* ((issue-elem (org-github--find-issue-by-title (cdr (assq 'title issue))
+                                                             repo-name))
                 (beg (org-element-property :begin issue-elem))
-                (end (org-element-property :end issue-elem)))
+                (end (org-element-property :end issue-elem))
+                (level (org-element-property :level issue-elem)))
            (delete-region beg end)
            (goto-char beg)
            (insert (org-element-interpret-data
                     (org-github--issue->elem issue level)))))))))
 
-(defun org-github--find-issue (title repo-name)
-  "Find the issue element with TITLE for repo REPO-NAME.
-
-Returns an org element.  Search takes place in the current
-buffer."
+(defun org-github--find-repo (repo-name)
+  "Find the repo element for REPO-NAME in the current buffer."
   (or (org-element-map (org-element-parse-buffer) 'headline
         (lambda (elem)
           (when (and (equal (org-element-property :OG-TYPE elem) "repo")
                      (equal (org-element-property :FULL_NAME elem) repo-name))
-            (org-element-map elem 'headline
-              (lambda (issue-elem)
-                (when (and (null (org-element-property :OG-TYPE issue-elem))
-                           (equal (org-github--elem-title issue-elem) title))
-                  issue-elem))
-              nil 'first-match)))
+            elem))
         nil 'first-match)
-      (error "Could not find issue \"%s\" in the current buffer" title)))
+      (error "Could not find repo \"%s\" in the current buffer" repo-name)))
 
-(defun org-github--extract-body (elem)
-  "Extract the text body for ELEM, a Github issue."
-  (let ((beg (org-element-property :contents-begin elem)))
-    (when beg
-      (let ((body (buffer-substring beg
-                                    (org-element-property :contents-end elem))))
-        (s-trim body)))))
+(defun org-github--issue-at-point (&optional point)
+  "Return the issue at POINT as an API object."
+  (save-excursion
+    (let ((point (or point (point))))
+      ;; Unfortunately, the elements returned by `org-element-at-point'
+      ;; are woefully incomplete, so we have to do a bit of a dance to
+      ;; get the full element.
+      (goto-char point)
+      (let ((issue-elem
+             (cond ((org-github--at-new-issue-p point)
+                    (org-github--find-issue-by-title
+                     (org-github--elem-title (org-element-at-point))
+                     (org-entry-get-with-inheritance "full_name")))
+                   ((org-github--at-existing-issue-p point)
+                    (org-github--find-issue-by-number
+                     (org-entry-get point "number")
+                     (org-entry-get-with-inheritance "full_name")))
+                   (t (error "Not at a github issue")))))
+        (org-github--elem->issue issue-elem)))))
+
+(defun org-github--find-issue-by-title (title repo-name)
+  "Find the issue element with TITLE for repo REPO-NAME.
+
+Returns an org element.  Search takes place in the current
+buffer.  The issue should not be an existing issue with a
+number."
+  (let ((repo-elem (org-github--find-repo repo-name)))
+    (or (org-element-map repo-elem 'headline
+          (lambda (elem)
+            (when (and (null (org-element-property :OG-TYPE elem))
+                       (equal (org-github--elem-title elem) title))
+              elem))
+          nil 'first-match)
+        (error "Could not find issue \"%s\" in the current buffer" title))))
+
+(defun org-github--find-issue-by-number (number repo-name)
+  "Find the issue element with NUMBER for repo REPO-NAME.
+
+Returns an org element.  Search takes place in the current
+buffer."
+  (let ((repo-elem (org-github--find-repo repo-name))
+        (number (format "%s" number)))
+    (or (org-element-map repo-elem 'headline
+          (lambda (elem)
+            (when (and (equal (org-element-property :OG-TYPE elem) "issue")
+                       (equal (org-element-property :NUMBER elem) number))
+              elem))
+          nil 'first-match)
+        (error "Could not find issue #%s in the current buffer" number))))
 
 (defun org-github--comments-header-p (elem)
   "Return non-nil if ELEM is a github issue comments header."
@@ -213,6 +244,10 @@ buffer."
         (parent-type (org-entry-get point "og-type" 'inherit)))
     (and (null current-type)
          (equal parent-type "repo"))))
+
+(defun org-github--at-existing-issue-p (point)
+  "Return non-nil if POINT is currently at an existing issue item."
+  (equal (org-entry-get point "og-type") "issue"))
 
 (defun org-github--insert-comments ()
   "Insert comments the github issue at point."
@@ -331,9 +366,10 @@ inserted (defaulting to level 1)."
 
 ELEM should be an org element."
   (list
-   (cons 'title (org-github--elem-title elem))
-   (cons 'labels (seq-into (org-element-property :tags elem) 'vector))
-   (cons 'body (org-github--extract-body elem))))
+   (cons 'title (org-github--prepare-title
+                 (org-github--elem-title elem)))
+   (cons 'body (org-github--elem-body elem))
+   (cons 'labels (org-github--elem-labels elem))))
 
 (defun org-github--comments->elem (comments level)
   "Return an org-element parse tree representing COMMENTS.
@@ -370,6 +406,33 @@ inserted."
           ((stringp (car title)) (car title))
           (t (error "Could not interpret element title")))))
 
+(defun org-github--elem-labels (elem)
+  "Return labels for ELEM as a vector."
+  (seq-into (seq-map (lambda (label)
+                       (s-replace "_" " " label))
+                     (org-element-property :tags elem))
+            'vector))
+
+(defun org-github--elem-body (elem)
+  "Extract the text body for ELEM, a Github issue item."
+  (let ((body
+         (s-join "\n\n"
+                 (org-element-map elem 'paragraph
+                   (lambda (para)
+                     (car (org-element-contents para)))))))
+    (setq foo body)
+    (unless (or (null body) (string= "" body))
+      body)))
+
+(defconst org-github--title-re
+  "\\(.*\\)\\[\\[[^]]+\\]\\[#[0-9]+\\]")
+
+(defun org-github--prepare-title (title)
+  "Prepare TITLE for the Github API by stripping links."
+  (s-trim (if (string-match org-github--title-re title)
+              (match-string 1 title)
+            title)))
+
 (defun org-github--props->elem (props)
   "Return a property drawar for PROPS.
 
@@ -378,7 +441,7 @@ Props should be an alist of (VAR . VALUE)."
          (seq-map (lambda (prop)
                     `(node-property
                       (:key ,(car prop)
-                       :value ,(cdr prop))))
+                            :value ,(cdr prop))))
                   props)))
     `(property-drawer nil
                       ,@prop-elems)))
@@ -396,8 +459,8 @@ set."
                     (seq-map (lambda (prop)
                                (let ((val (cdr (assq prop object))))
                                  (when val
-                                  (cons (symbol-name prop)
-                                        (format "%s" val)))))
+                                   (cons (symbol-name prop)
+                                         (format "%s" val)))))
                              (append '(url created_at updated_at) extra-props)))))
 
 (defun org-github--tags (object)

@@ -142,12 +142,14 @@ the first \"o\" and erase the brackets."
 Something
 *** Comments..."
     (should-not (org-github--comments-header-p (org-element-at-point))))
+
   (with-org-snippet "
 * shosti/org-github
 ** OPEN [[https://github.com/shosti/org-github/issues/1][This is a sample issue]]
 Something
 *** C[o]mments..."
     (should (org-github--comments-header-p (org-element-at-point))))
+
   (with-org-snippet "
 * shosti/org-github
 ** OPEN [[https://github.com/shosti/org-github/issues/1][This is a sample issue]]
@@ -155,6 +157,64 @@ Something
 *** C[o]mments
 **** someone"
     (should-not (org-github--comments-header-p (org-element-at-point)))))
+
+(ert-deftest org-github-issue-at-point ()
+  (seq-do
+   (lambda (args)
+     (let ((snippet (car args))
+           (want (cdr args)))
+       (with-org-snippet snippet
+         (should (equal want (org-github--issue-at-point))))))
+
+   '(("
+* shosti/org-github
+:PROPERTIES:
+:og-type: repo
+:full_name: shosti/org-github
+:END:
+** [A]n issue"
+      . ((title . "An issue")
+         (body . nil)
+         (labels . [])))
+
+     ("
+* shosti/org-github
+:PROPERTIES:
+:og-type: repo
+:full_name: shosti/org-github
+:END:
+** [A]n issue     :wontfix:"
+      . ((title . "An issue")
+         (body . nil)
+         (labels . ["wontfix"])))
+
+     ("
+* shosti/org-github
+:PROPERTIES:
+:og-type: repo
+:full_name: shosti/org-github
+:END:
+** [A]n issue    :wontfix:something_else:
+This is the body.
+Not sure what it means?"
+      . ((title . "An issue")
+         (body . "This is the body.\nNot sure what it means?")
+         (labels . ["wontfix" "something else"])))
+
+     ("
+* shosti/org-github
+:PROPERTIES:
+:og-type: repo
+:full_name: shosti/org-github
+:END:
+** [A]n issue [[https://github.com/shosti/org-github/issues/2][#2]]  :wontfix:
+:PROPERTIES:
+:og-type: issue
+:number: 2
+:END:"
+      . ((title . "An issue")
+         (body . nil)
+         (labels . ["wontfix"]))))))
 
 (ert-deftest org-github-todo-keywords ()
   (with-org-snippet "
@@ -204,6 +264,45 @@ Organize your Github issues with org-mode
 :og-type:  issue
 :END:"
     (should-not (org-github--at-new-issue-p (point)))))
+
+(ert-deftest org-github-at-existing-issue-p ()
+  (with-org-snippet "
+* shosti/org-github
+:PROPERTIES:
+:og-type:  repo
+:END:
+Organize your Github issues with org-mode
+** Another problem, this time from org-github!
+** This issu[e] was already there
+:PROPERTIES:
+:og-type:  issue
+:END:"
+    (should (org-github--at-existing-issue-p (point))))
+
+  (with-org-snippet "
+* shosti/org-github
+:PROPERTIES:
+:og-type:  repo
+:END:
+Organize your Github issues with org-mode
+** This issue was already there
+:PROPERTIES:
+:og-type:  issue
+:END:
+This is an [i]ssue body."
+    (should (org-github--at-existing-issue-p (point))))
+
+  (with-org-snippet "
+* shosti/org-git[h]ub
+:PROPERTIES:
+:og-type:  repo
+:END:
+Organize your Github issues with org-mode
+** This issue was already there
+:PROPERTIES:
+:og-type:  issue
+:END:"
+    (should-not (org-github--at-existing-issue-p (point)))))
 
 (ert-deftest org-github-group-and-sort ()
   (let ((got (org-github--group-and-sort-issues
