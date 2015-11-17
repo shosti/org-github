@@ -1,0 +1,29 @@
+HTTP/1.1 200 OK
+Server: GitHub.com
+Date: Tue, 17 Nov 2015 22:19:16 GMT
+Content-Type: application/json; charset=utf-8
+Transfer-Encoding: chunked
+Status: 200 OK
+X-RateLimit-Limit: 5000
+X-RateLimit-Remaining: 4998
+X-RateLimit-Reset: 1447802351
+Cache-Control: private, max-age=60, s-maxage=60
+ETag: W/"03e99fda233d97c32d29eb2f777705bc"
+X-OAuth-Scopes: gist, repo, user
+X-Accepted-OAuth-Scopes:
+Vary: Accept, Authorization, Cookie, X-GitHub-OTP
+X-GitHub-Media-Type: github.v3; format=json
+X-XSS-Protection: 1; mode=block
+X-Frame-Options: deny
+Content-Security-Policy: default-src 'none'
+Access-Control-Allow-Credentials: true
+Access-Control-Expose-Headers: ETag, Link, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+Access-Control-Allow-Origin: *
+Strict-Transport-Security: max-age=31536000; includeSubdomains; preload
+X-Content-Type-Options: nosniff
+Vary: Accept-Encoding
+X-Served-By: a6882e5cd2513376cb9481dbcd83f3a2
+Content-Encoding: gzip
+X-GitHub-Request-Id: ADF7CE82:1AD4:1D62C9D5:564BA7DF
+
+{"url":"https://api.github.com/repos/shosti/org-github/issues/2","labels_url":"https://api.github.com/repos/shosti/org-github/issues/2/labels{/name}","comments_url":"https://api.github.com/repos/shosti/org-github/issues/2/comments","events_url":"https://api.github.com/repos/shosti/org-github/issues/2/events","html_url":"https://github.com/shosti/org-github/issues/2","id":109713973,"number":2,"title":"This is yet another sample issue","user":{"login":"shosti","id":734316,"avatar_url":"https://avatars.githubusercontent.com/u/734316?v=3","gravatar_id":"","url":"https://api.github.com/users/shosti","html_url":"https://github.com/shosti","followers_url":"https://api.github.com/users/shosti/followers","following_url":"https://api.github.com/users/shosti/following{/other_user}","gists_url":"https://api.github.com/users/shosti/gists{/gist_id}","starred_url":"https://api.github.com/users/shosti/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/shosti/subscriptions","organizations_url":"https://api.github.com/users/shosti/orgs","repos_url":"https://api.github.com/users/shosti/repos","events_url":"https://api.github.com/users/shosti/events{/privacy}","received_events_url":"https://api.github.com/users/shosti/received_events","type":"User","site_admin":false},"labels":[],"state":"open","locked":false,"assignee":{"login":"shosti","id":734316,"avatar_url":"https://avatars.githubusercontent.com/u/734316?v=3","gravatar_id":"","url":"https://api.github.com/users/shosti","html_url":"https://github.com/shosti","followers_url":"https://api.github.com/users/shosti/followers","following_url":"https://api.github.com/users/shosti/following{/other_user}","gists_url":"https://api.github.com/users/shosti/gists{/gist_id}","starred_url":"https://api.github.com/users/shosti/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/shosti/subscriptions","organizations_url":"https://api.github.com/users/shosti/orgs","repos_url":"https://api.github.com/users/shosti/repos","events_url":"https://api.github.com/users/shosti/events{/privacy}","received_events_url":"https://api.github.com/users/shosti/received_events","type":"User","site_admin":false},"milestone":null,"comments":0,"created_at":"2015-10-04T23:59:09Z","updated_at":"2015-11-17T22:19:16Z","closed_at":null,"body":null,"closed_by":null}

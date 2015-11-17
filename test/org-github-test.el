@@ -1,4 +1,5 @@
 ;;; org-github-test --- Tests for org-github-test -*- lexical-binding: t -*-
+
 ;; Copyright © 2015 Emanuel Evans
 
 ;; Author: Emanuel Evans <mail@emanuel.industries>
@@ -93,10 +94,10 @@ the first \"o\" and erase the brackets."
   (let ((fname (concat org-github--fixtures-dir f)))
     (unless (file-exists-p fname)
       (error "%s doesn't exist" fname))
-    (let ((current-contents (buffer-string)))
+    (let ((current-contents (replace-regexp-in-string "[ \t]+" "" (buffer-string))))
       (with-temp-buffer
         (insert-file-contents fname)
-        (should (string= (buffer-string) current-contents))))))
+        (should (string= (replace-regexp-in-string "[ \t]+" ""(buffer-string)) current-contents))))))
 
 (ert-deftest org-github-basic-response ()
   (with-stubbed-url-retrieve
@@ -132,6 +133,20 @@ the first \"o\" and erase the brackets."
     (search-forward "A problem")
     (org-ctrl-c-ctrl-c)
     (org-github--should-equal-fixture "new-issue-after-create.org")))
+
+(ert-deftest org-github-update-issue ()
+  (with-stubbed-url-retrieve
+    (switch-to-buffer "*github-test*")
+    (erase-buffer)
+    (insert-file-contents (concat org-github--fixtures-dir "new-issue.org"))
+    (org-mode)
+    (org-github-mode)
+    (show-all)
+    (goto-char (point-min))
+    (search-forward "This is")
+    (insert " yet")
+    (org-ctrl-c-ctrl-c)
+    (org-github--should-equal-fixture "new-issue-after-update.org")))
 
 (ert-deftest org-github-comments-header ()
   (with-org-snippet "

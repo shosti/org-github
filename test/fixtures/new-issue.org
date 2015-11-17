@@ -17,5 +17,22 @@ Organize your Github issues with org-mode
 :comments_url: https://api.github.com/repos/shosti/org-github/issues/2/comments
 :assignee: shosti
 :END:
+*** Comments
+**** [[https://github.com/shosti/org-github/issues/2#issuecomment-157616385][shosti]]
+:PROPERTIES:
+:og-type:  comment
+:url:      https://api.github.com/repos/shosti/org-github/issues/comments/157616385
+:created_at: 2015-11-18T06:26:22Z
+:updated_at: 2015-11-18T06:26:22Z
+:END:
+Comment 1
+**** [[https://github.com/shosti/org-github/issues/2#issuecomment-157616410][shosti]]
+:PROPERTIES:
+:og-type:  comment
+:url:      https://api.github.com/repos/shosti/org-github/issues/comments/157616410
+:created_at: 2015-11-18T06:26:25Z
+:updated_at: 2015-11-18T06:26:25Z
+:END:
+Comment 2
 ** A problem                                                     :something:
 Something...

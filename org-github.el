@@ -101,10 +101,12 @@ If nil, org-github will attempt to use an appropriate value from
   "Intelligently update Github issue at POINT."
   (when org-github-mode
     (let ((point (or point (point))))
-      (if (org-github--at-new-issue-p point)
-          (progn (org-github--create-issue point)
-                 t)
-        (message "Updating existing issues not implemented yet")))))
+      (cond ((org-github--at-new-issue-p point)
+             (progn (org-github--create-issue point)
+                    t))
+            ((org-github--at-existing-issue-p point)
+             (progn (org-github--update-issue point)
+                    t))))))
 
 (add-hook 'org-ctrl-c-ctrl-c-hook #'org-github-update)
 
@@ -145,16 +147,31 @@ list of issues."
   (save-excursion
     (goto-char point)
     (org-back-to-heading)
-    (let ((issue-beg (point)))
-      (org-up-heading-all 1)
-      (let ((type (org-entry-get (point) "og-type"))
-            (repo-url (org-entry-get (point) "url"))
-            (repo-name (org-entry-get (point) "full_name")))
-        (unless (equal type "repo")
-          (error "Invalid format for Github issue item"))
-        (org-github--post-issue (org-github--issue-at-point point)
-                                repo-name
-                                (concat repo-url "/issues"))))))
+    (org-up-heading-all 1)
+    (let ((type (org-entry-get (point) "og-type"))
+          (repo-url (org-entry-get (point) "url"))
+          (repo-name (org-entry-get (point) "full_name")))
+      (unless (equal type "repo")
+        (error "Invalid format for Github issue item"))
+      (org-github--post-issue (org-github--issue-at-point point)
+                              repo-name
+                              (concat repo-url "/issues")))))
+
+(defun org-github--update-issue (point)
+  "Update issue at POINT using the Github API."
+  (unless (equal (org-entry-get point "og-type") "issue")
+    (error "Not at an issue"))
+  (let ((buffer (current-buffer))
+        (issue (org-github--issue-at-point))
+        (url (org-entry-get point "url"))
+        (repo-name (org-entry-get-with-inheritance "full_name")))
+    (org-github--retrieve
+     "PATCH" url (json-encode issue)
+     (lambda (issue)
+       (with-current-buffer buffer
+         (let ((issue-elem (org-github--find-issue-by-number (cdr (assq 'number issue))
+                                                             repo-name)))
+           (org-github--replace-issue issue-elem issue)))))))
 
 (defun org-github--post-issue (issue repo-name url)
   "Post ISSUE, a new issue for repo REPO-NAME, to URL."
@@ -163,14 +180,29 @@ list of issues."
      "POST" url (json-encode issue)
      (lambda (issue)
        (with-current-buffer buffer
-         (let* ((issue-elem (org-github--find-issue-by-title (cdr (assq 'title issue))
-                                                             repo-name))
-                (beg (org-element-property :begin issue-elem))
-                (end (org-element-property :end issue-elem))
-                (level (org-element-property :level issue-elem)))
-           (delete-region beg end)
-           (goto-char beg)
-           (org-github--insert-elem (org-github--issue->elem issue level))))))))
+         (let ((issue-elem (org-github--find-issue-by-title (cdr (assq 'title issue))
+                                                            repo-name)))
+           (org-github--replace-issue issue-elem issue)))))))
+
+(defun org-github--replace-issue (issue-elem issue)
+  "Replace ISSUE-ELEM with the data from ISSUE in the current buffer."
+  (let ((level (org-element-property :level issue-elem)))
+    (org-github--replace-elem issue-elem
+                              (org-github--issue->elem issue level 'exclude-comments))))
+
+(defun org-github--replace-elem (old-elem new-elem)
+  "Replace OLD-ELEM with NEW-ELEM in the current buffer, preserving subheadings."
+  (let ((beg (org-element-property :begin old-elem))
+        (end (org-element-property :end old-elem))
+        (subheadings (seq-filter (lambda (elem)
+                                   (and (consp elem)
+                                        (eq (car elem) 'headline)))
+                                 old-elem)))
+    (unless (and beg end)
+      (error "Invalid element"))
+    (delete-region beg end)
+    (goto-char beg)
+    (org-github--insert-elem (append new-elem subheadings))))
 
 (defun org-github--find-repo (repo-name)
   "Find the repo element for REPO-NAME in the current buffer."
@@ -329,7 +361,7 @@ inserted (defaulting to level 1)."
                                    ,(cdr (assq 'description repo))))
                ,@issue-elems)))
 
-(defun org-github--issue->elem (issue &optional level)
+(defun org-github--issue->elem (issue &optional level exclude-comments)
   "Return an org-element tree representing ISSUE.
 
 ISSUE should be an object returned from the Github API.
@@ -343,7 +375,7 @@ inserted (defaulting to level 1)."
                           (cons "assignee"
                                 (cdr (assq 'login (cdr (assq 'assignee issue)))))))))
         (comments-section
-         (when (> (cdr (assq 'comments issue)) 0)
+         (when (and (not exclude-comments) (> (cdr (assq 'comments issue)) 0))
            `(headline (:title "Comments..."
                               :level ,(1+ level))))))
     `(headline (:title (,(format "%s " (cdr (assq 'title issue)))
@@ -414,11 +446,10 @@ inserted."
 (defun org-github--elem-body (elem)
   "Extract the text body for ELEM, a Github issue item."
   (let ((body
-         (s-join "\n\n"
+         (s-join "\n"
                  (org-element-map elem 'paragraph
                    (lambda (para)
                      (car (org-element-contents para)))))))
-    (setq foo body)
     (unless (or (null body) (string= "" body))
       body)))
 
@@ -462,7 +493,8 @@ Props should be an alist of (VAR . VALUE)."
                 (let ((line (car line-and-tag))
                       (tags (cdr line-and-tag)))
                   (when tags
-                    (goto-line line)
+                    (goto-char (point-min))
+                    (forward-line line)
                     (sit-for 0)
                     (org-set-tags-to tags))))
               lines-and-tags)))
