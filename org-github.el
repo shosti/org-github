@@ -157,7 +157,7 @@ list of issues."
                                 (concat repo-url "/issues"))))))
 
 (defun org-github--post-issue (issue repo-name url)
-  "Post ISSUE, a new issue, to URL."
+  "Post ISSUE, a new issue for repo REPO-NAME, to URL."
   (let ((buffer (current-buffer)))
     (org-github--retrieve
      "POST" url (json-encode issue)
@@ -170,8 +170,7 @@ list of issues."
                 (level (org-element-property :level issue-elem)))
            (delete-region beg end)
            (goto-char beg)
-           (insert (org-element-interpret-data
-                    (org-github--issue->elem issue level)))))))))
+           (org-github--insert-elem (org-github--issue->elem issue level))))))))
 
 (defun org-github--find-repo (repo-name)
   "Find the repo element for REPO-NAME in the current buffer."
@@ -293,12 +292,11 @@ buffer."
           (level (org-element-property :level comments-elem)))
       (delete-region beg end)
       (goto-char beg)
-      (insert (org-element-interpret-data
-               (org-github--comments->elem comments level))))))
+      (org-github--insert-elem (org-github--comments->elem comments level)))))
 
 (defun org-github--insert-issues (issues)
   "Insert ISSUES (as returned by the Github API), grouped by repository."
-  (insert (org-element-interpret-data (org-github--issues->elem issues))))
+  (org-github--insert-elem (org-github--issues->elem issues)))
 
 (defun org-github--issues->elem (issues)
   "Return an org-element parse tree representing ISSUES.
@@ -445,6 +443,29 @@ Props should be an alist of (VAR . VALUE)."
                   props)))
     `(property-drawer nil
                       ,@prop-elems)))
+
+(defun org-github--insert-elem (elem)
+  "Insert org element ELEM at point."
+  (save-excursion
+    (insert (org-element-interpret-data elem))
+    ;; HACK: This is a rather horrible workaround for a tag
+    ;; indentation bug in org-mode. Hopefully the bug will be fixed
+    ;; soon.
+    (let ((lines-and-tags
+           (org-element-map (org-element-parse-buffer) 'headline
+             (lambda (elem)
+               (let ((beg (org-element-property :begin elem)))
+                 (goto-char beg)
+                 (cons (line-number-at-pos)
+                       (org-element-property :tags elem)))))))
+      (seq-do (lambda (line-and-tag)
+                (let ((line (car line-and-tag))
+                      (tags (cdr line-and-tag)))
+                  (when tags
+                    (goto-line line)
+                    (sit-for 0)
+                    (org-set-tags-to tags))))
+              lines-and-tags))))
 
 (defun org-github--props (object type &optional extra-props)
   "Return a property drawer elem for OBJECT.

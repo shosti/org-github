@@ -93,12 +93,10 @@ the first \"o\" and erase the brackets."
   (let ((fname (concat org-github--fixtures-dir f)))
     (unless (file-exists-p fname)
       (error "%s doesn't exist" fname))
-    ;; TODO: Once there's a workaround for the tag indentation bug,
-    ;; this should compare exactly.
-    (let ((current-contents (s-replace " " "" (buffer-string))))
+    (let ((current-contents (buffer-string)))
       (with-temp-buffer
         (insert-file-contents fname)
-        (should (string= (s-replace " " "" (buffer-string)) current-contents))))))
+        (should (string= (buffer-string) current-contents))))))
 
 (ert-deftest org-github-basic-response ()
   (with-stubbed-url-retrieve
