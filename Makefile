@@ -9,7 +9,7 @@ elpa:
 	$(CASK) update
 	touch $@
 
-org-github.elc: elpa
+org-github.elc: elpa org-github.el
 	$(CASK) exec $(EMACS) --no-site-file --no-site-lisp --batch \
 		--directory "."                          \
 		$(EMACSFLAGS)                            \
