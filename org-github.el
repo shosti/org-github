@@ -465,7 +465,8 @@ Props should be an alist of (VAR . VALUE)."
                     (goto-line line)
                     (sit-for 0)
                     (org-set-tags-to tags))))
-              lines-and-tags))))
+              lines-and-tags)))
+  (org-cycle-hide-drawers 'all))
 
 (defun org-github--props (object type &optional extra-props)
   "Return a property drawer elem for OBJECT.
