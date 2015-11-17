@@ -162,25 +162,19 @@ list of issues."
 
 Data ELEM should be in org-element format."
   (let ((buffer (current-buffer))
-        (title (org-element-property :title elem))
-        (body (org-github--extract-body elem))
-        (labels (seq-into (org-element-property :tags elem) 'vector))
+        (title (org-github--elem-title elem))
+        (issue (org-github--elem->issue elem))
         (level (org-element-property :level elem)))
-    (let ((json-body (json-encode
-                      `((title . ,title)
-                        (body . ,body)
-                        (labels . ,labels)))))
-      (org-github--retrieve
-       "POST" url json-body
-       (lambda (issue)
-         (with-current-buffer buffer
-           (let* ((issue-elem (org-github--find-issue title repo-name))
-                  (beg (org-element-property :begin issue-elem))
-                  (end (org-element-property :end issue-elem)))
-             (delete-region beg end)
-             (goto-char beg)
-             (insert (org-element-interpret-data
-                      (org-github--issue->elem issue level))))))))))
+    (org-github--retrieve "POST" url (json-encode issue)
+     (lambda (issue)
+       (with-current-buffer buffer
+         (let* ((issue-elem (org-github--find-issue title repo-name))
+                (beg (org-element-property :begin issue-elem))
+                (end (org-element-property :end issue-elem)))
+           (delete-region beg end)
+           (goto-char beg)
+           (insert (org-element-interpret-data
+                    (org-github--issue->elem issue level)))))))))
 
 (defun org-github--find-issue (title repo-name)
   "Find the issue element with TITLE for repo REPO-NAME.
@@ -194,7 +188,7 @@ buffer."
             (org-element-map elem 'headline
               (lambda (issue-elem)
                 (when (and (null (org-element-property :OG-TYPE issue-elem))
-                           (equal (car (org-element-property :title issue-elem)) title))
+                           (equal (org-github--elem-title issue-elem) title))
                   issue-elem))
               nil 'first-match)))
         nil 'first-match)
@@ -252,7 +246,7 @@ buffer."
          (comments-elem
           (or (org-element-map issue-elem 'headline
                 (lambda (elem)
-                  (let ((title (car (org-element-property :title elem))))
+                  (let ((title (org-github--elem-title elem)))
                     (when (and (stringp title)
                                (equal title "Comments"))
                       elem)))
@@ -332,6 +326,15 @@ inserted (defaulting to level 1)."
                                      (cdr (assq 'body issue)))))
                ,comments-section)))
 
+(defun org-github--elem->issue (elem)
+  "Create an issue object for the Github API from ELEM.
+
+ELEM should be an org element."
+  (list
+   (cons 'title (org-github--elem-title elem))
+   (cons 'labels (seq-into (org-element-property :tags elem) 'vector))
+   (cons 'body (org-github--extract-body elem))))
+
 (defun org-github--comments->elem (comments level)
   "Return an org-element parse tree representing COMMENTS.
 
@@ -359,6 +362,13 @@ inserted."
                         (paragraph nil
                                    ,(org-github--fix-body
                                      (cdr (assq 'body comment))))))))
+
+(defun org-github--elem-title (elem)
+  "Return the title of ELEM as a string."
+  (let ((title (org-element-property :title elem)))
+    (cond ((stringp title) title)
+          ((stringp (car title)) (car title))
+          (t (error "Could not interpret element title")))))
 
 (defun org-github--props->elem (props)
   "Return a property drawar for PROPS.
