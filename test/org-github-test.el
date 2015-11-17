@@ -32,6 +32,9 @@
 (require 'org-github)
 (require 's)
 
+(unless org-github-access-token
+  (setq org-github-access-token "fakefakefake"))
+
 (defconst org-github--fixtures-dir
   (concat (file-name-directory (or load-file-name buffer-file-name))
           "fixtures/"))

@@ -1,4 +1,4 @@
-;;; org-github --- Organize your Github issues with org-mode -*- lexical-binding: t -*-
+;;; org-github.el --- Organize your Github issues with org-mode -*- lexical-binding: t -*-
 
 ;; Copyright © 2015 Emanuel Evans
 
@@ -7,7 +7,7 @@
 ;; URL: http://github.com/shosti/org-github
 ;; Version: 0.0.1
 ;; Created: 27 Sep 2015
-;; Package-Requires: ((emacs "24") (seq "1.9") (s "1.10.0"))
+;; Package-Requires: ((emacs "24.4") (seq "1.9") (s "1.10.0"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,6 +37,7 @@
 (require 'auth-source)
 (require 'json)
 (require 'org)
+(require 'org-element)
 (require 's)
 (require 'seq)
 (require 'url)
