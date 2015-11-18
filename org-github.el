@@ -445,11 +445,18 @@ inserted."
 
 (defun org-github--elem-body (elem)
   "Extract the text body for ELEM, a Github issue item."
-  (let ((body
-         (s-join "\n"
-                 (org-element-map elem 'paragraph
-                   (lambda (para)
-                     (car (org-element-contents para)))))))
+  (let* ((body-section
+          (seq-find (lambda (elem)
+                      (and (consp elem)
+                           (eq (car elem) 'section)))
+                    elem))
+         (body
+          (s-trim
+           (s-join "\n"
+                   (org-element-map body-section 'paragraph
+                     (lambda (para)
+                       (car (org-element-contents para)))
+                     nil nil 'paragraph)))))
     (unless (or (null body) (string= "" body))
       body)))
 

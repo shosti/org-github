@@ -212,7 +212,27 @@ This is the body.
 Not sure what it means?"
       . ((title . "An issue")
          (body . "This is the body.\nNot sure what it means?")
-         (labels . ["wontfix" "something else"])))
+         (labels . ["wontfix" "something else"])))("
+
+* shosti/org-github
+:PROPERTIES:
+:og-type: repo
+:full_name: shosti/org-github
+:END:
+** OPEN [A]n issue [[https://github.com/shosti/org-github/issues/2][#2]]  :wontfix:
+:PROPERTIES:
+:og-type: issue
+:number: 2
+:END:
+This is the body.
+
+Not sure what it means?
+*** Comments
+**** octocat
+A comment to mess things up!"
+      . ((title . "An issue")
+         (body . "This is the body.\n\nNot sure what it means?")
+         (labels . ["wontfix"])))
 
      ("
 * shosti/org-github
