@@ -79,7 +79,8 @@ If nil, org-github will attempt to use an appropriate value from
   "Minor mode for interacting with Github issues through org mode."
   nil nil org-github-mode-map
   :group 'org
-  (let ((org-todo-keywords (cons '(sequence "OPEN" "CLOSED") org-todo-keywords)))
+  (let ((org-todo-keywords (cons '(sequence "OPEN" "CLOSED")
+                                 org-todo-keywords)))
     (org-mode-restart))
   (setq org-github-mode t))
 
@@ -116,7 +117,8 @@ If nil, org-github will attempt to use an appropriate value from
 See documentation for `org-cycle' for more details, including ARG
 usage."
   (interactive)
-  (if (and org-github-mode (org-github--comments-header-p (org-element-at-point)))
+  (if (and org-github-mode
+           (org-github--comments-header-p (org-element-at-point)))
       (org-github--insert-comments)
     (org-cycle arg)))
 
@@ -169,8 +171,9 @@ list of issues."
      "PATCH" url (json-encode issue)
      (lambda (issue)
        (with-current-buffer buffer
-         (let ((issue-elem (org-github--find-issue-by-number (cdr (assq 'number issue))
-                                                             repo-name)))
+         (let ((issue-elem (org-github--find-issue-by-number
+                            (cdr (assq 'number issue))
+                            repo-name)))
            (org-github--replace-issue issue-elem issue)))))))
 
 (defun org-github--post-issue (issue repo-name url)
@@ -188,7 +191,9 @@ list of issues."
   "Replace ISSUE-ELEM with the data from ISSUE in the current buffer."
   (let ((level (org-element-property :level issue-elem)))
     (org-github--replace-elem issue-elem
-                              (org-github--issue->elem issue level 'exclude-comments))))
+                              (org-github--issue->elem issue
+                                                       level
+                                                       'exclude-comments))))
 
 (defun org-github--replace-elem (old-elem new-elem)
   "Replace OLD-ELEM with NEW-ELEM in the current buffer, preserving subheadings."
@@ -293,7 +298,8 @@ buffer."
     (org-github--retrieve "GET" comments-url nil
                           (lambda (comments)
                             (with-current-buffer buffer
-                              (org-github--update-comments comments issue-number))))))
+                              (org-github--update-comments comments
+                                                           issue-number))))))
 
 (defun org-github--update-comments (comments issue-number)
   "Insert COMMENTS into the org entry for ISSUE-NUMBER in the current buffer."
@@ -373,7 +379,8 @@ inserted (defaulting to level 1)."
                        (when (cdr (assq 'assignee issue))
                          (list
                           (cons "assignee"
-                                (cdr (assq 'login (cdr (assq 'assignee issue)))))))))
+                                (cdr (assq 'login
+                                           (cdr (assq 'assignee issue)))))))))
         (comments-section
          (when (and (not exclude-comments) (> (cdr (assq 'comments issue)) 0))
            `(headline (:title "Comments..."
@@ -470,7 +477,7 @@ inserted."
             title)))
 
 (defun org-github--props->elem (props)
-  "Return a property drawar for PROPS.
+  "Return a property drawer for PROPS.
 
 Props should be an alist of (VAR . VALUE)."
   (let ((prop-elems
@@ -565,12 +572,14 @@ DATA is any data to be sent with the request.
 CALLBACK is called with the parsed request results."
   (let ((url-request-method method)
         (url-request-data data)
-        (url-request-extra-headers (list
-                                    (cons "Authorization"
-                                          (concat "token " (org-github--get-access-token)))
-                                    (cons "Accept" "application/vnd.github.v3+json")))
+        (url-request-extra-headers
+         (list
+          (cons "Authorization"
+                (concat "token " (org-github--get-access-token)))
+          (cons "Accept" "application/vnd.github.v3+json")))
         (url (cond ((string-prefix-p "https://" endpoint) endpoint)
-                   ((string-prefix-p "/" endpoint) (concat "https://api.github.com" endpoint))
+                   ((string-prefix-p "/" endpoint)
+                    (concat "https://api.github.com" endpoint))
                    (t (error "Invalid endpoint: %s" endpoint)))))
     (url-retrieve url #'org-github--parse-response (list callback))))
 
