@@ -373,7 +373,10 @@ inserted (defaulting to level 1)."
 ISSUE should be an object returned from the Github API.
 
 LEVEL represents the org level at which the repo should be
-inserted (defaulting to level 1)."
+inserted (defaulting to level 1).
+
+The issue's comments will be included unless EXCLUDE-COMMENTS is
+non-nil."
   (let ((level (or level 1))
         (props (append (org-github--props issue 'issue '(number comments_url))
                        (when (cdr (assq 'assignee issue))
