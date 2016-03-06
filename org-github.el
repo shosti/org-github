@@ -7,7 +7,7 @@
 ;; URL: http://github.com/shosti/org-github
 ;; Version: 0.0.1
 ;; Created: 27 Sep 2015
-;; Package-Requires: ((emacs "24.4") (seq "1.9") (s "1.10.0"))
+;; Package-Requires: ((org "8.3.4") (emacs "24.4") (seq "1.9") (s "1.10.0"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -355,8 +355,9 @@ inserted (defaulting to level 1)."
          (repo (car group))
          (issue-elems (seq-map (lambda (issue)
                                  (org-github--issue->elem issue (1+ level)))
-                               (cdr group))))
-    `(headline (:title ((link (:raw-link ,(cdr (assq 'html_url repo)))
+                               (cdr group)))
+         (parsed-link (org-github--parse-link (cdr (assq 'html_url repo)))))
+    `(headline (:title ((link ,parsed-link
                               ,(cdr (assq 'full_name repo))))
                        :level ,level)
                (section nil
@@ -383,9 +384,10 @@ inserted (defaulting to level 1)."
         (comments-section
          (when (and (not exclude-comments) (> (cdr (assq 'comments issue)) 0))
            `(headline (:title "Comments..."
-                              :level ,(1+ level))))))
+                              :level ,(1+ level)))))
+        (parsed-link (org-github--parse-link (cdr (assq 'html_url issue)))))
     `(headline (:title (,(format "%s " (cdr (assq 'title issue)))
-                        (link (:raw-link ,(cdr (assq 'html_url issue)))
+                        (link ,parsed-link
                               ,(format "#%d" (cdr (assq 'number issue)))))
                        :level ,level
                        :tags ,(org-github--tags issue)
@@ -425,8 +427,9 @@ be inserted."
 
 LEVEL is the header level at which to the comments should be
 inserted."
-  (let ((props (org-github--props comment 'comment)))
-    `(headline (:title ((link (:raw-link ,(cdr (assq 'html_url comment)))
+  (let ((props (org-github--props comment 'comment))
+        (parsed-link (org-github--parse-link (cdr (assq 'html_url comment)))))
+    `(headline (:title ((link ,parsed-link
                               ,(cdr (assq 'login (cdr (assq 'user comment))))))
                        :level ,level)
                (section nil
@@ -474,6 +477,11 @@ inserted."
   (s-trim (if (string-match org-github--title-re title)
               (match-string 1 title)
             title)))
+
+(defun org-github--parse-link (link)
+  "Parse LINK, returning an element that's understood by org-element."
+  (let ((parts (s-split-up-to ":" link 1)))
+    (list :type (car parts) :path (cadr parts))))
 
 (defun org-github--props->elem (props)
   "Return a property drawer for PROPS.
