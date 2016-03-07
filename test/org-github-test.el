@@ -80,10 +80,8 @@ the first \"o\" and erase the brackets."
        (goto-char (point-min))
        (when (looking-at-p "\n")
          (delete-char +1))
-       (when (search-forward-regexp "\\[.\\]" nil 'noerror)
-         (delete-char -1)
-         (backward-char)
-         (delete-char -1))
+       (when (search-forward "<point>" nil 'noerror)
+         (delete-char (- 0 (length "<point>"))))
        (org-mode)
        (show-all)
        (org-github-mode)
@@ -150,7 +148,7 @@ the first \"o\" and erase the brackets."
 
 (ert-deftest org-github-comments-header ()
   (with-org-snippet "
-* s[h]osti/org-github
+* s<point>hosti/org-github
 ** OPEN [[https://github.com/shosti/org-github/issues/1][This is a sample issue]]
 Something
 *** Comments..."
@@ -160,14 +158,14 @@ Something
 * shosti/org-github
 ** OPEN [[https://github.com/shosti/org-github/issues/1][This is a sample issue]]
 Something
-*** C[o]mments..."
+*** C<point>omments..."
     (should (org-github--comments-header-p (org-element-at-point))))
 
   (with-org-snippet "
 * shosti/org-github
 ** OPEN [[https://github.com/shosti/org-github/issues/1][This is a sample issue]]
 Something
-*** C[o]mments
+*** C<point>omments
 **** someone"
     (should-not (org-github--comments-header-p (org-element-at-point)))))
 
@@ -185,7 +183,7 @@ Something
 :og-type: repo
 :full_name: shosti/org-github
 :END:
-** [A]n issue"
+** <point>An issue"
       . ((title . "An issue")
          (body . nil)
          (labels . [])))
@@ -196,7 +194,7 @@ Something
 :og-type: repo
 :full_name: shosti/org-github
 :END:
-** [A]n issue     :wontfix:"
+** <point>An issue     :wontfix:"
       . ((title . "An issue")
          (body . nil)
          (labels . ["wontfix"])))
@@ -207,7 +205,7 @@ Something
 :og-type: repo
 :full_name: shosti/org-github
 :END:
-** [A]n issue    :wontfix:something_else:
+** <point>An issue    :wontfix:something_else:
 This is the body.
 Not sure what it means?"
       . ((title . "An issue")
@@ -219,7 +217,7 @@ Not sure what it means?"
 :og-type: repo
 :full_name: shosti/org-github
 :END:
-** OPEN [A]n issue [[https://github.com/shosti/org-github/issues/2][#2]]  :wontfix:
+** OPEN <point>An issue [[https://github.com/shosti/org-github/issues/2][#2]]  :wontfix:
 :PROPERTIES:
 :og-type: issue
 :number: 2
@@ -240,7 +238,7 @@ A comment to mess things up!"
 :og-type: repo
 :full_name: shosti/org-github
 :END:
-** [A]n issue [[https://github.com/shosti/org-github/issues/2][#2]]  :wontfix:
+** <point>An issue [[https://github.com/shosti/org-github/issues/2][#2]]  :wontfix:
 :PROPERTIES:
 :og-type: issue
 :number: 2
@@ -252,7 +250,7 @@ A comment to mess things up!"
 (ert-deftest org-github-todo-keywords ()
   (with-org-snippet "
 * shosti/org-github
-** OPEN [A] problem"
+** OPEN <point>A problem"
     (should (equal (org-get-todo-state) "OPEN"))
     (org-todo)
     (should (equal (org-get-todo-state) "CLOSED"))))
@@ -264,7 +262,7 @@ A comment to mess things up!"
 :og-type:  repo
 :END:
 Organize your Github issues with org-mode
-** Another [p]roblem, this time from org-github!
+** Another <point>problem, this time from org-github!
 ** This issue was already there
 :PROPERTIES:
 :og-type:  issue
@@ -274,11 +272,11 @@ Organize your Github issues with org-mode
   (with-org-snippet "
 * shosti/org-github
 Organize your Github issues with org-mode
-** Another [p]roblem, this time from org-github!"
+** Another <point>problem, this time from org-github!"
     (should-not (org-github--at-new-issue-p (point))))
 
   (with-org-snippet "
-* sho[s]ti/org-github
+* sho<point>sti/org-github
 :PROPERTIES:
 :og-type:  repo
 :END:
@@ -292,7 +290,7 @@ Organize your Github issues with org-mode
 :og-type:  repo
 :END:
 Organize your Github issues with org-mode
-** Another [p]roblem, this time from org-github!
+** Another <point>problem, this time from org-github!
 :PROPERTIES:
 :og-type:  issue
 :END:"
@@ -306,7 +304,7 @@ Organize your Github issues with org-mode
 :END:
 Organize your Github issues with org-mode
 ** Another problem, this time from org-github!
-** This issu[e] was already there
+** This issu<point>e was already there
 :PROPERTIES:
 :og-type:  issue
 :END:"
@@ -322,11 +320,11 @@ Organize your Github issues with org-mode
 :PROPERTIES:
 :og-type:  issue
 :END:
-This is an [i]ssue body."
+This is an <point>issue body."
     (should (org-github--at-existing-issue-p (point))))
 
   (with-org-snippet "
-* shosti/org-git[h]ub
+* shosti/org-git<point>hub
 :PROPERTIES:
 :og-type:  repo
 :END:
