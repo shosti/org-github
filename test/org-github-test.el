@@ -335,6 +335,57 @@ Organize your Github issues with org-mode
 :END:"
     (should-not (org-github--at-existing-issue-p (point)))))
 
+(ert-deftest org-github-at-new-comment-p ()
+  (with-org-snippet "
+** Issue
+:PROPERTIES:
+:og-type:  issue
+:END:
+*** Comments
+**** Someone
+A cool comment
+
+With line breaks
+**** Someone
+Another <point>comment"
+    (should (org-github--at-new-comment-p (point))))
+
+  (with-org-snippet "
+** Issue
+:PROPERTIES:
+:og-type:  issue
+:END:
+*** Comments
+**** Someone
+:PROPERTIES:
+:og-type: comment
+:END:
+A cool <point>comment"
+    (should-not (org-github--at-new-comment-p (point))))
+
+  (with-org-snippet "
+** Issue
+:PROPERTIES:
+:og-type:  issue
+:END:
+*** <point>Comments
+**** Someone
+A cool comment"
+    (should-not (org-github--at-new-comment-p (point)))))
+
+(ert-deftest org-github-at-existing-comment-p ()
+  (with-org-snippet "
+**** A <point>comment
+:PROPERTIES:
+:og-type: comment
+:END:"
+    (should (org-github--at-existing-comment-p (point))))
+
+  (with-org-snippet "
+*** Comments
+**** A cool <point>comment "
+    (should-not (org-github--at-existing-comment-p (point)))))
+
 (ert-deftest org-github-group-and-sort ()
   (let ((got (org-github--group-and-sort-issues
               '[((name . "repo2issue2")

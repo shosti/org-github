@@ -284,6 +284,24 @@ buffer."
   "Return non-nil if POINT is currently at an existing issue item."
   (equal (org-entry-get point "og-type") "issue"))
 
+(defun org-github--at-new-comment-p (point)
+  "Return non-nil if POINT is currently at a new comment."
+  (org-github--in-comments-p point))
+
+(defun org-github--in-comments-p (point)
+  "Recursively check whether POINT is within the comments section."
+  (save-excursion
+    (goto-char point)
+    (and (null (org-entry-get point "og-type"))
+         (and (org-up-heading-safe)
+              (or (equal (org-element-property :title (org-element-at-point))
+                         "Comments")
+                  (org-github--in-comments-p (point)))))))
+
+(defun org-github--at-existing-comment-p (point)
+  "Return non-nil if POINT is currently at an existing comment."
+  (equal (org-entry-get point "og-type") "comment"))
+
 (defun org-github--insert-comments ()
   "Insert comments the github issue at point."
   (let ((buffer (current-buffer))
