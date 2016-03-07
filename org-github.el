@@ -102,11 +102,9 @@ If nil, org-github will attempt to use an appropriate value from
   (when org-github-mode
     (let ((point (or point (point))))
       (cond ((org-github--at-new-issue-p point)
-             (progn (org-github--create-issue point)
-                    t))
+             (org-github--create-issue point))
             ((org-github--at-existing-issue-p point)
-             (progn (org-github--update-issue point)
-                    t))))))
+             (org-github--update-issue point))))))
 
 (add-hook 'org-ctrl-c-ctrl-c-hook #'org-github-update)
 
@@ -144,7 +142,9 @@ list of issues."
              grouped-issues)))
 
 (defun org-github--create-issue (point)
-  "Create Github issue, reading the data at POINT."
+  "Create Github issue, reading the data at POINT.
+
+Always returns non-nil."
   (save-excursion
     (goto-char point)
     (org-back-to-heading)
@@ -156,10 +156,13 @@ list of issues."
         (error "Invalid format for Github issue item"))
       (org-github--post-issue (org-github--issue-at-point point)
                               repo-name
-                              (concat repo-url "/issues")))))
+                              (concat repo-url "/issues"))))
+  t)
 
 (defun org-github--update-issue (point)
-  "Update issue at POINT using the Github API."
+  "Update issue at POINT using the Github API.
+
+Always returns non-nil."
   (unless (equal (org-entry-get point "og-type") "issue")
     (error "Not at an issue"))
   (let ((buffer (current-buffer))
@@ -173,7 +176,8 @@ list of issues."
          (let ((issue-elem (org-github--find-issue-by-number
                             (cdr (assq 'number issue))
                             repo-name)))
-           (org-github--replace-issue issue-elem issue)))))))
+           (org-github--replace-issue issue-elem issue))))))
+  t)
 
 (defun org-github--post-issue (issue repo-name url)
   "Post ISSUE, a new issue for repo REPO-NAME, to URL."
