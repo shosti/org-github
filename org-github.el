@@ -116,7 +116,7 @@ usage."
   (interactive)
   (if (and org-github-mode
            (org-github--comments-header-p (org-element-at-point)))
-      (org-github--insert-comments)
+      (org-github--refresh-comments)
     (org-cycle arg)))
 
 (defun org-github--group-and-sort-issues (issues)
@@ -306,8 +306,8 @@ buffer."
   "Return non-nil if POINT is currently at an existing comment."
   (equal (org-entry-get point "og-type") "comment"))
 
-(defun org-github--insert-comments ()
-  "Insert comments the github issue at point."
+(defun org-github--refresh-comments ()
+  "Insert comments for the github issue at point."
   (let ((buffer (current-buffer))
         (comments-url (org-entry-get-with-inheritance "comments_url"))
         (issue-number (org-entry-get-with-inheritance "number")))
@@ -319,10 +319,10 @@ buffer."
     (org-github--retrieve "GET" comments-url nil
                           (lambda (comments)
                             (with-current-buffer buffer
-                              (org-github--update-comments comments
+                              (org-github--insert-comments comments
                                                            issue-number))))))
 
-(defun org-github--update-comments (comments issue-number)
+(defun org-github--insert-comments (comments issue-number)
   "Insert COMMENTS into the org entry for ISSUE-NUMBER in the current buffer."
   (let* ((issue-elem
           (or (org-element-map (org-element-parse-buffer) 'headline
