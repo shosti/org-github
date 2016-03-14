@@ -146,6 +146,20 @@ the first \"o\" and erase the brackets."
     (org-ctrl-c-ctrl-c)
     (org-github--should-equal-fixture "new-issue-after-update.org")))
 
+(ert-deftest org-github-update-comment ()
+  (with-stubbed-url-retrieve
+    (switch-to-buffer "*github-test*")
+    (erase-buffer)
+    (insert-file-contents (concat org-github--fixtures-dir "user-issues-expanded.org"))
+    (org-mode)
+    (org-github-mode)
+    (show-all)
+    (goto-char (point-min))
+    (search-forward "A comment")
+    (insert " with some more details")
+    (org-ctrl-c-ctrl-c)
+    (org-github--should-equal-fixture "user-issues-expanded-after-comment-update.org")))
+
 (ert-deftest org-github-comments-header ()
   (with-org-snippet "
 * s<point>hosti/org-github
@@ -175,7 +189,7 @@ Something
      (let ((snippet (car args))
            (want (cdr args)))
        (with-org-snippet snippet
-         (should (equal want (org-github--issue-at-point))))))
+         (should (equal want (org-github--issue-at-point (point)))))))
 
    '(("
 * shosti/org-github

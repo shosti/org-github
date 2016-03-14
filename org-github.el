@@ -104,7 +104,11 @@ If nil, org-github will attempt to use an appropriate value from
       (cond ((org-github--at-new-issue-p point)
              (org-github--create-issue point))
             ((org-github--at-existing-issue-p point)
-             (org-github--update-issue point))))))
+             (org-github--update-issue point))
+            ((org-github--at-new-comment-p point)
+             (error "Not implemented yet!"))
+            ((org-github--at-existing-comment-p point)
+             (org-github--update-comment point))))))
 
 (add-hook 'org-ctrl-c-ctrl-c-hook #'org-github-update)
 
@@ -163,10 +167,10 @@ Always returns non-nil."
   "Update issue at POINT using the Github API.
 
 Always returns non-nil."
-  (unless (equal (org-entry-get point "og-type") "issue")
-    (error "Not at an issue"))
+  (org-github--assert-at-element-type point "issue")
+
   (let ((buffer (current-buffer))
-        (issue (org-github--issue-at-point))
+        (issue (org-github--issue-at-point point))
         (url (org-entry-get point "url"))
         (repo-name (org-entry-get-with-inheritance "full_name")))
     (org-github--retrieve
@@ -177,6 +181,25 @@ Always returns non-nil."
                             (cdr (assq 'number issue))
                             repo-name)))
            (org-github--replace-issue issue-elem issue))))))
+  t)
+
+(defun org-github--update-comment (point)
+  "Update comment at POINT using the Github API.
+
+Always returns non-nil."
+  (org-github--assert-at-element-type point "comment")
+
+  (let ((buffer (current-buffer))
+        (url (org-entry-get point "url"))
+        (comment (org-github--comment-at-point point)))
+    (org-github--retrieve
+     "PATCH" url (json-encode comment)
+     (lambda (comment)
+       (with-current-buffer buffer
+         (let* ((comment-elem (org-github--find-elem-by-url url))
+                (level (org-element-property :level comment-elem)) )
+           (org-github--replace-elem
+            comment-elem (org-github--comment->elem comment level)))))))
   t)
 
 (defun org-github--post-issue (issue repo-name url)
@@ -222,25 +245,51 @@ Always returns non-nil."
         nil 'first-match)
       (error "Could not find repo \"%s\" in the current buffer" repo-name)))
 
-(defun org-github--issue-at-point (&optional point)
-  "Return the issue at POINT as an API object."
+(defun org-github--issue-elem-at-point (point)
+  "Return the issue at POINT as an org element."
   (save-excursion
-    (let ((point (or point (point))))
-      ;; Unfortunately, the elements returned by `org-element-at-point'
-      ;; are woefully incomplete, so we have to do a bit of a dance to
-      ;; get the full element.
-      (goto-char point)
-      (let ((issue-elem
-             (cond ((org-github--at-new-issue-p point)
-                    (org-github--find-issue-by-title
-                     (org-github--elem-title (org-element-at-point))
-                     (org-entry-get-with-inheritance "full_name")))
-                   ((org-github--at-existing-issue-p point)
-                    (org-github--find-issue-by-number
-                     (org-entry-get point "number")
-                     (org-entry-get-with-inheritance "full_name")))
-                   (t (error "Not at a github issue")))))
-        (org-github--elem->issue issue-elem)))))
+    ;; Unfortunately, the elements returned by `org-element-at-point'
+    ;; are woefully incomplete, so we have to do a bit of a dance to
+    ;; get the full element.
+    (goto-char point)
+    (cond ((org-github--at-new-issue-p point)
+           (org-github--find-issue-by-title
+            (org-github--elem-title (org-element-at-point))
+            (org-entry-get-with-inheritance "full_name")))
+          ((org-github--at-existing-issue-p point)
+           (org-github--find-issue-by-number
+            (org-entry-get point "number")
+            (org-entry-get-with-inheritance "full_name")))
+          (t (error "Not at a github issue")))))
+
+(defun org-github--issue-at-point (point)
+  "Return the issue at POINT as an API object."
+  (org-github--elem->issue (org-github--issue-elem-at-point point)))
+
+(defun org-github--find-elem-by-url (url)
+  "Find the Github element with url URL in the current buffer."
+  (or (org-element-map (org-element-parse-buffer) 'headline
+        (lambda (elem)
+          (when (and (not (null (org-element-property :OG-TYPE elem)))
+                     (equal (org-element-property :URL elem) url))
+            elem))
+        nil 'first-match)
+      (error "Could not find element with url \"%s\" in the current buffer"
+             url)))
+
+(defun org-github--comment-elem-at-point (point)
+  "Return the comment at POINT as an org element."
+  (save-excursion
+    (goto-char point)
+    (cond ((org-github--at-new-comment-p point)
+           (error "NOT YET!"))
+          ((org-github--at-existing-comment-p point)
+           (org-github--find-elem-by-url (org-entry-get point "url")))
+          (t (error "Not at a github comment")))))
+
+(defun org-github--comment-at-point (point)
+  "Return the comment at POINT as an API object."
+  (org-github--elem->comment (org-github--comment-elem-at-point point)))
 
 (defun org-github--find-issue-by-title (title repo-name)
   "Find the issue element with TITLE for repo REPO-NAME.
@@ -434,6 +483,13 @@ ELEM should be an org element."
    (cons 'body (org-github--elem-body elem))
    (cons 'labels (org-github--elem-labels elem))))
 
+(defun org-github--elem->comment (elem)
+  "Create a comment object for the Github API from ELEM.
+
+ELEM should be an org element."
+  (list
+   (cons 'body (org-github--elem-body elem))))
+
 (defun org-github--comments->elem (comments level)
   "Return an org-element parse tree representing COMMENTS.
 
@@ -478,7 +534,7 @@ inserted."
             'vector))
 
 (defun org-github--elem-body (elem)
-  "Extract the text body for ELEM, a Github issue item."
+  "Extract the text body for ELEM, a Github item."
   (let* ((body-section
           (seq-find (lambda (elem)
                       (and (consp elem)
@@ -629,6 +685,11 @@ CALLBACK is called with the parsed request results."
   (forward-paragraph)
   (let ((parsed (json-read)))
     (funcall callback parsed)))
+
+(defun org-github--assert-at-element-type (point type)
+  "Assert that POINT is currently at a gitub element of type TYPE."
+  (unless (equal (org-entry-get point "og-type") type)
+    (error "Not at Github element of type %s" type)))
 
 (provide 'org-github)
 
