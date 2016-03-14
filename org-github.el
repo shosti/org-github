@@ -42,6 +42,9 @@
 (require 'seq)
 (require 'url)
 
+
+;; Customization
+
 (defgroup org-github nil
   "Customization group for org-github."
   :group 'org)
@@ -73,6 +76,9 @@ If nil, org-github will attempt to use an appropriate value from
     (org-defkey keymap [remap org-cycle] #'org-github-cycle)
     keymap)
   "Keymap for org-github mode.")
+
+
+;; User-facing functions
 
 ;;;###autoload
 (define-minor-mode org-github-mode
@@ -122,6 +128,9 @@ usage."
            (org-github--comments-header-p (org-element-at-point)))
       (org-github--refresh-comments)
     (org-cycle arg)))
+
+
+;; Private functions
 
 (defun org-github--group-and-sort-issues (issues)
   "Group ISSUES according to repo and sort by issue number.
