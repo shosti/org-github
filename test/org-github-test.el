@@ -160,6 +160,20 @@ the first \"o\" and erase the brackets."
     (org-ctrl-c-ctrl-c)
     (org-github--should-equal-fixture "user-issues-expanded-after-comment-update.org")))
 
+(ert-deftest org-github-create-comment ()
+  (with-stubbed-url-retrieve
+    (switch-to-buffer "*github-test*")
+    (erase-buffer)
+    (insert-file-contents (concat org-github--fixtures-dir "user-issues-expanded.org"))
+    (org-mode)
+    (org-github-mode)
+    (show-all)
+    (goto-char (point-max))
+    (insert "**** shosti
+A brand spankin' new comment!")
+    (org-ctrl-c-ctrl-c)
+    (org-github--should-equal-fixture "user-issues-expanded-after-new-comment.org")))
+
 (ert-deftest org-github-comments-header ()
   (with-org-snippet "
 * s<point>hosti/org-github

@@ -106,7 +106,7 @@ If nil, org-github will attempt to use an appropriate value from
             ((org-github--at-existing-issue-p point)
              (org-github--update-issue point))
             ((org-github--at-new-comment-p point)
-             (error "Not implemented yet!"))
+             (org-github--create-comment point))
             ((org-github--at-existing-comment-p point)
              (org-github--update-comment point))))))
 
@@ -178,6 +178,26 @@ Always returns non-nil."
        (with-current-buffer buffer
          (let ((issue-elem (org-github--find-elem-by-url url)))
            (org-github--replace-issue issue-elem issue))))))
+  t)
+
+(defun org-github--create-comment (point)
+  "Create Github comment, reading data at POINT.
+
+Always returns non-nil."
+  (save-excursion
+    (goto-char point)
+    (let ((buffer (current-buffer))
+          (url (or (org-entry-get-with-inheritance "comments_url")
+                   (error "No comments URL")))
+          (comment (org-github--comment-at-point point)))
+      (org-github--retrieve
+       "POST" url (json-encode comment)
+       (lambda (comment)
+         (with-current-buffer buffer
+           (let* ((comment-elem (org-github--find-new-comment point))
+                  (level (org-element-property :level comment-elem)))
+             (org-github--replace-elem
+              comment-elem (org-github--comment->elem comment level))))))))
   t)
 
 (defun org-github--update-comment (point)
@@ -272,12 +292,34 @@ Always returns non-nil."
       (error "Could not find element with url \"%s\" in the current buffer"
              url)))
 
+(defun org-github--find-new-comment (point)
+  "Find the comment elem (which must be a new comment) at POINT."
+  (let ((parent-issue-elem
+         (org-github--find-elem-by-url (org-entry-get-with-inheritance "url"))))
+    (unless (equal (org-element-property :OG-TYPE parent-issue-elem) "issue")
+      (error "Invalid issue element"))
+
+    (org-element-map parent-issue-elem 'headline
+      (lambda (elem)
+        (when (member "Comments" (org-element-property :title elem))
+          (let ((level (1+ (org-element-property :level elem))))
+            (org-element-map elem 'headline
+              (lambda (comment)
+                (when (and (equal (org-element-property :level comment) level)
+                           (null (org-element-property :OG-TYPE comment))
+                           (<= (org-element-property :begin comment)
+                               point
+                               (org-element-property :end comment)))
+                  comment))
+              nil 'first-match))))
+      nil 'first-match)))
+
 (defun org-github--comment-elem-at-point (point)
   "Return the comment at POINT as an org element."
   (save-excursion
     (goto-char point)
     (cond ((org-github--at-new-comment-p point)
-           (error "NOT YET!"))
+           (org-github--find-new-comment point))
           ((org-github--at-existing-comment-p point)
            (org-github--find-elem-by-url (org-entry-get point "url")))
           (t (error "Not at a github comment")))))

@@ -1,0 +1,28 @@
+HTTP/1.1 201 Created
+Server: GitHub.com
+Date: Mon, 14 Mar 2016 04:12:34 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 1214
+Status: 201 Created
+X-RateLimit-Limit: 5000
+X-RateLimit-Remaining: 4992
+X-RateLimit-Reset: 1457931955
+Cache-Control: private, max-age=60, s-maxage=60
+Vary: Accept, Authorization, Cookie, X-GitHub-OTP
+ETag: "ce49166fc24ca411743fc85e989d01d1"
+X-OAuth-Scopes: gist, repo, user
+X-Accepted-OAuth-Scopes:
+Location: https://api.github.com/repos/shosti/org-github/issues/comments/196130971
+X-GitHub-Media-Type: github.v3; format=json
+Access-Control-Expose-Headers: ETag, Link, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+Access-Control-Allow-Origin: *
+Content-Security-Policy: default-src 'none'
+Strict-Transport-Security: max-age=31536000; includeSubdomains; preload
+X-Content-Type-Options: nosniff
+X-Frame-Options: deny
+X-XSS-Protection: 1; mode=block
+Vary: Accept-Encoding
+X-Served-By: a30e6f9aa7cf5731b87dfb3b9992202d
+X-GitHub-Request-Id: 32AE64A7:B8C1:265B134:56E63A31
+
+{"url":"https://api.github.com/repos/shosti/org-github/issues/comments/196130971","html_url":"https://github.com/shosti/org-github/issues/1#issuecomment-196130971","issue_url":"https://api.github.com/repos/shosti/org-github/issues/1","id":196130971,"user":{"login":"shosti","id":734316,"avatar_url":"https://avatars.githubusercontent.com/u/734316?v=3","gravatar_id":"","url":"https://api.github.com/users/shosti","html_url":"https://github.com/shosti","followers_url":"https://api.github.com/users/shosti/followers","following_url":"https://api.github.com/users/shosti/following{/other_user}","gists_url":"https://api.github.com/users/shosti/gists{/gist_id}","starred_url":"https://api.github.com/users/shosti/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/shosti/subscriptions","organizations_url":"https://api.github.com/users/shosti/orgs","repos_url":"https://api.github.com/users/shosti/repos","events_url":"https://api.github.com/users/shosti/events{/privacy}","received_events_url":"https://api.github.com/users/shosti/received_events","type":"User","site_admin":false},"created_at":"2016-03-14T04:12:34Z","updated_at":"2016-03-14T04:12:34Z","body":"A brand spankin' new comment!"}
