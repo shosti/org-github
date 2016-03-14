@@ -171,15 +171,12 @@ Always returns non-nil."
 
   (let ((buffer (current-buffer))
         (issue (org-github--issue-at-point point))
-        (url (org-entry-get point "url"))
-        (repo-name (org-entry-get-with-inheritance "full_name")))
+        (url (org-entry-get point "url")))
     (org-github--retrieve
      "PATCH" url (json-encode issue)
      (lambda (issue)
        (with-current-buffer buffer
-         (let ((issue-elem (org-github--find-issue-by-number
-                            (cdr (assq 'number issue))
-                            repo-name)))
+         (let ((issue-elem (org-github--find-elem-by-url url)))
            (org-github--replace-issue issue-elem issue))))))
   t)
 
@@ -257,9 +254,7 @@ Always returns non-nil."
             (org-github--elem-title (org-element-at-point))
             (org-entry-get-with-inheritance "full_name")))
           ((org-github--at-existing-issue-p point)
-           (org-github--find-issue-by-number
-            (org-entry-get point "number")
-            (org-entry-get-with-inheritance "full_name")))
+           (org-github--find-elem-by-url (org-entry-get point "url")))
           (t (error "Not at a github issue")))))
 
 (defun org-github--issue-at-point (point)
@@ -305,21 +300,6 @@ number."
               elem))
           nil 'first-match)
         (error "Could not find issue \"%s\" in the current buffer" title))))
-
-(defun org-github--find-issue-by-number (number repo-name)
-  "Find the issue element with NUMBER for repo REPO-NAME.
-
-Returns an org element.  Search takes place in the current
-buffer."
-  (let ((repo-elem (org-github--find-repo repo-name))
-        (number (format "%s" number)))
-    (or (org-element-map repo-elem 'headline
-          (lambda (elem)
-            (when (and (equal (org-element-property :OG-TYPE elem) "issue")
-                       (equal (org-element-property :NUMBER elem) number))
-              elem))
-          nil 'first-match)
-        (error "Could not find issue #%s in the current buffer" number))))
 
 (defun org-github--comments-header-p (elem)
   "Return non-nil if ELEM is a github issue comments header."

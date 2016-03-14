@@ -224,8 +224,9 @@ This is the body.
 Not sure what it means?"
       . ((title . "An issue")
          (body . "This is the body.\nNot sure what it means?")
-         (labels . ["wontfix" "something else"])))("
+         (labels . ["wontfix" "something else"])))
 
+     ("
 * shosti/org-github
 :PROPERTIES:
 :og-type: repo
@@ -235,6 +236,7 @@ Not sure what it means?"
 :PROPERTIES:
 :og-type: issue
 :number: 2
+:url: https://api.github.com/repos/shosti/org-github/issues/2
 :END:
 This is the body.
 
@@ -256,6 +258,7 @@ A comment to mess things up!"
 :PROPERTIES:
 :og-type: issue
 :number: 2
+:url: https://api.github.com/repos/shosti/org-github/issues/2
 :END:"
       . ((title . "An issue")
          (body . nil)
