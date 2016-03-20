@@ -322,7 +322,7 @@ Always returns non-nil."
     (goto-char point)
     (cond ((org-github--at-new-issue-p point)
            (org-github--find-issue-by-title
-            (org-github--elem-title (org-element-at-point))
+            (org-get-heading 'no-tags 'no-todo)
             (org-entry-get-with-inheritance "full_name")))
           ((org-github--at-existing-issue-p point)
            (org-github--find-elem-by-url (org-entry-get point "url")))

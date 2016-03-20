@@ -222,6 +222,18 @@ Something
 :og-type: repo
 :full_name: shosti/org-github
 :END:
+** An issue
+With a body<point>"
+      . ((title . "An issue")
+         (body . "With a body")
+         (labels . [])))
+
+     ("
+* shosti/org-github
+:PROPERTIES:
+:og-type: repo
+:full_name: shosti/org-github
+:END:
 ** <point>An issue     :wontfix:"
       . ((title . "An issue")
          (body . nil)
