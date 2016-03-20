@@ -1,2 +1,2 @@
-* org-github [[https://travis-ci.org/shosti/org-github.png]]
+* org-github [[https://travis-ci.org/shosti/org-github][file:https://travis-ci.org/shosti/org-github.svg?branch=master]]
 Stay tuned!
