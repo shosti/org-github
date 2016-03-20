@@ -694,7 +694,8 @@ set."
 
 (defun org-github--tags (object)
   "Get tags for OBJECT (returned by the Github API)."
-  (seq-map (lambda (tag) (cdr (assq 'name tag)))
+  (seq-map (lambda (tag)
+             (s-replace " " "_" (cdr (assq 'name tag))))
            (cdr (assq 'labels object))))
 
 (defun org-github--fix-body (body)
