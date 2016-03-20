@@ -278,13 +278,29 @@ A comment to mess things up!"
          (body . nil)
          (labels . ["wontfix"]))))))
 
-(ert-deftest org-github-todo-keywords ()
-  (with-org-snippet "
+(ert-deftest org-github-todo ()
+  (with-stubbed-url-retrieve
+    (with-org-snippet "
 * shosti/org-github
-** OPEN <point>A problem"
-    (should (equal (org-get-todo-state) "OPEN"))
-    (org-todo)
-    (should (equal (org-get-todo-state) "CLOSED"))))
+** OPEN <point>A problem
+:PROPERTIES:
+:og-type: issue
+:url: https://api.github.com/repos/shosti/org-github/issues/3
+:END:"
+      (should (equal (org-get-todo-state) "OPEN"))
+      (org-github-todo)
+      (should (equal (org-get-todo-state) "CLOSED")))
+
+    (with-org-snippet "
+* shosti/org-github
+** CLOSED <point>A problem
+:PROPERTIES:
+:og-type: issue
+:url: https://api.github.com/repos/shosti/org-github/issues/4
+:END:"
+      (should (equal (org-get-todo-state) "CLOSED"))
+      (org-github-todo)
+      (should (equal (org-get-todo-state) "OPEN")))))
 
 (ert-deftest org-github-at-new-issue-p ()
   (with-org-snippet "

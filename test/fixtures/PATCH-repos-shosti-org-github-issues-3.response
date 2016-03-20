@@ -1,0 +1,28 @@
+HTTP/1.1 200 OK
+Server: GitHub.com
+Date: Sun, 20 Mar 2016 23:00:26 GMT
+Content-Type: application/json; charset=utf-8
+Transfer-Encoding: chunked
+Status: 200 OK
+X-RateLimit-Limit: 5000
+X-RateLimit-Remaining: 4972
+X-RateLimit-Reset: 1458516129
+Cache-Control: private, max-age=60, s-maxage=60
+Vary: Accept, Authorization, Cookie, X-GitHub-OTP
+ETag: W/"385dc65f0675101f10e543047c1f2b95"
+X-OAuth-Scopes: gist, repo, user
+X-Accepted-OAuth-Scopes:
+X-GitHub-Media-Type: github.v3; format=json
+Access-Control-Expose-Headers: ETag, Link, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval
+Access-Control-Allow-Origin: *
+Content-Security-Policy: default-src 'none'
+Strict-Transport-Security: max-age=31536000; includeSubdomains; preload
+X-Content-Type-Options: nosniff
+X-Frame-Options: deny
+X-XSS-Protection: 1; mode=block
+Vary: Accept-Encoding
+X-Served-By: c6c65e5196703428e7641f7d1e9bc353
+Content-Encoding: gzip
+X-GitHub-Request-Id: 32AE64A7:1805F:6805EE1:56EF2B8A
+
+{"url":"https://api.github.com/repos/shosti/org-github/issues/3","repository_url":"https://api.github.com/repos/shosti/org-github","labels_url":"https://api.github.com/repos/shosti/org-github/issues/3/labels{/name}","comments_url":"https://api.github.com/repos/shosti/org-github/issues/3/comments","events_url":"https://api.github.com/repos/shosti/org-github/issues/3/events","html_url":"https://github.com/shosti/org-github/issues/3","id":109933947,"number":3,"title":"Thing","user":{"login":"shosti","id":734316,"avatar_url":"https://avatars.githubusercontent.com/u/734316?v=3","gravatar_id":"","url":"https://api.github.com/users/shosti","html_url":"https://github.com/shosti","followers_url":"https://api.github.com/users/shosti/followers","following_url":"https://api.github.com/users/shosti/following{/other_user}","gists_url":"https://api.github.com/users/shosti/gists{/gist_id}","starred_url":"https://api.github.com/users/shosti/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/shosti/subscriptions","organizations_url":"https://api.github.com/users/shosti/orgs","repos_url":"https://api.github.com/users/shosti/repos","events_url":"https://api.github.com/users/shosti/events{/privacy}","received_events_url":"https://api.github.com/users/shosti/received_events","type":"User","site_admin":false},"labels":[],"state":"closed","locked":false,"assignee":{"login":"shosti","id":734316,"avatar_url":"https://avatars.githubusercontent.com/u/734316?v=3","gravatar_id":"","url":"https://api.github.com/users/shosti","html_url":"https://github.com/shosti","followers_url":"https://api.github.com/users/shosti/followers","following_url":"https://api.github.com/users/shosti/following{/other_user}","gists_url":"https://api.github.com/users/shosti/gists{/gist_id}","starred_url":"https://api.github.com/users/shosti/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/shosti/subscriptions","organizations_url":"https://api.github.com/users/shosti/orgs","repos_url":"https://api.github.com/users/shosti/repos","events_url":"https://api.github.com/users/shosti/events{/privacy}","received_events_url":"https://api.github.com/users/shosti/received_events","type":"User","site_admin":false},"milestone":null,"comments":0,"created_at":"2015-10-06T04:36:00Z","updated_at":"2016-03-20T23:00:26Z","closed_at":"2016-03-20T23:00:26Z","body":"Other","closed_by":{"login":"shosti","id":734316,"avatar_url":"https://avatars.githubusercontent.com/u/734316?v=3","gravatar_id":"","url":"https://api.github.com/users/shosti","html_url":"https://github.com/shosti","followers_url":"https://api.github.com/users/shosti/followers","following_url":"https://api.github.com/users/shosti/following{/other_user}","gists_url":"https://api.github.com/users/shosti/gists{/gist_id}","starred_url":"https://api.github.com/users/shosti/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/shosti/subscriptions","organizations_url":"https://api.github.com/users/shosti/orgs","repos_url":"https://api.github.com/users/shosti/repos","events_url":"https://api.github.com/users/shosti/events{/privacy}","received_events_url":"https://api.github.com/users/shosti/received_events","type":"User","site_admin":false}}

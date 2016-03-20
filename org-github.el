@@ -71,21 +71,24 @@ If nil, org-github will attempt to use an appropriate value from
 (defvar org-github--rate-limit-remaining nil
   "Remaining API requests permitted by rate-limiting.")
 
-(defvar org-github-mode-map
-  (let ((keymap (make-sparse-keymap)))
-    (org-defkey keymap [remap org-cycle] #'org-github-cycle)
-    keymap)
-  "Keymap for org-github mode.")
+(defconst org-github-todo-keywords '(sequence "OPEN" "CLOSED"))
 
 
 ;; User-facing functions
+
+(defvar org-github-mode-map
+  (let ((keymap (make-sparse-keymap)))
+    (org-defkey keymap [remap org-cycle] #'org-github-cycle)
+    (org-defkey keymap [remap org-todo] #'org-github-todo)
+    keymap)
+  "Keymap for org-github mode.")
 
 ;;;###autoload
 (define-minor-mode org-github-mode
   "Minor mode for interacting with Github issues through org mode."
   nil nil org-github-mode-map
   :group 'org
-  (let ((org-todo-keywords '((sequence "OPEN" "CLOSED"))))
+  (let ((org-todo-keywords (cons org-github-todo-keywords org-todo-keywords)))
     (org-mode-restart))
   (setq org-github-mode t))
 
@@ -118,6 +121,19 @@ If nil, org-github will attempt to use an appropriate value from
 
 (add-hook 'org-ctrl-c-ctrl-c-hook #'org-github-update)
 
+(defun org-github-todo (&optional arg)
+  "Change the state of an item.
+
+If the cursor is at a Github issue, cycle between OPEN and CLOSED
+and update on Github accordingly.  Otherwise, this calls
+`org-todo'.
+
+See `org-todo' for usage of ARG."
+  (interactive "P")
+  (if (org-github--at-existing-issue-p (point))
+      (org-github--issue-todo)
+    (org-todo arg)))
+
 (defun org-github-cycle (&optional arg)
   "Visibility cycling for Org-mode, with github actions taken into account.
 
@@ -131,6 +147,32 @@ usage."
 
 
 ;; Private functions
+
+(defun org-github--issue-todo ()
+  "Cycle issue TODO state and update information on Github accordingly.
+
+See `org-todo' for usage of ARG."
+  (let ((org-use-fast-todo-selection nil)
+        (buffer (current-buffer))
+        (new-state (pcase (org-get-todo-state)
+                     ("OPEN" "closed")
+                     ("CLOSED" "open")
+                     (_ "open")))
+        (url (org-entry-get (point) "url")))
+    (when (or (null url)
+              (not (equal (org-entry-get (point) "og-type") "issue")))
+      (error "malformed issue item"))
+
+    (let ((data (json-encode (list (cons "state" new-state)))))
+      (org-github--retrieve
+       "PATCH" url data
+       (lambda (issue)
+         (with-current-buffer buffer
+           (let ((issue-elem (org-github--find-elem-by-url
+                              (cdr (assq 'url issue)))))
+             (save-excursion
+               (goto-char (org-element-property :begin issue-elem))
+               (org-todo (upcase (cdr (assq 'state issue))))))))))))
 
 (defun org-github--group-and-sort-issues (issues)
   "Group ISSUES according to repo and sort by issue number.
