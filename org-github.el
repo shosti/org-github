@@ -161,7 +161,7 @@ See `org-todo' for usage of ARG."
         (url (org-entry-get (point) "url")))
     (when (or (null url)
               (not (equal (org-entry-get (point) "og-type") "issue")))
-      (error "malformed issue item"))
+      (error "Malformed issue item"))
     (org-todo (upcase new-state))
 
     (let ((data (json-encode (list (cons "state" new-state)))))
