@@ -173,7 +173,9 @@ See `org-todo' for usage of ARG."
                               (cdr (assq 'url issue)))))
              (save-excursion
                (goto-char (org-element-property :begin issue-elem))
-               (org-todo (upcase (cdr (assq 'state issue))))))))))))
+               (let ((new-state (upcase (cdr (assq 'state issue)))))
+                 (when (not (equal new-state (org-entry-get (point) "TODO")))
+                   (org-todo new-state)))))))))))
 
 (defun org-github--group-and-sort-issues (issues)
   "Group ISSUES according to repo and sort by issue number.
