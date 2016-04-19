@@ -65,6 +65,16 @@ STUBBED-RESPONSE corresponds to a file in the fixtures directory."
          ,@body
        (advice-remove #'url-retrieve :stubbed-web-request))))
 
+(defmacro org-github-deftest (name () &rest body)
+  "Define a unit test with NAME and BODY, with some extra
+org-github-specific stuff."
+  (declare (indent 2))
+  (let ((name (intern (concat "org-github-" (symbol-name name)))))
+    `(ert-deftest ,name ()
+       (let ((org-github-body-export-function #'identity)
+             (org-github-body-import-function #'identity))
+         ,@body))))
+
 (defmacro with-org-snippet (snippet &rest body)
   "Use SNIPPET to test BODY in a fresh `org-mode' buffer.
 
@@ -97,7 +107,7 @@ the first \"o\" and erase the brackets."
         (insert-file-contents fname)
         (should (string= (replace-regexp-in-string "[ \t]+" ""(buffer-string)) current-contents))))))
 
-(ert-deftest org-github-basic-response ()
+(org-github-deftest basic-response ()
   (with-stubbed-url-retrieve
     (org-github--retrieve
      "GET" "/" nil
@@ -106,7 +116,7 @@ the first \"o\" and erase the brackets."
                       "https://api.github.com/user"))))
     (should (equal org-github--rate-limit-remaining 4996))))
 
-(ert-deftest org-github-my-issues ()
+(org-github-deftest my-issues ()
   (with-stubbed-url-retrieve
     (save-excursion
       (org-github-my-issues)
@@ -119,7 +129,7 @@ the first \"o\" and erase the brackets."
       (org-github-cycle)
       (org-github--should-equal-fixture "user-issues-expanded.org"))))
 
-(ert-deftest org-github-create-new-issue ()
+(org-github-deftest create-new-issue ()
   (with-stubbed-url-retrieve
     (switch-to-buffer "*github-test*")
     (erase-buffer)
@@ -132,7 +142,7 @@ the first \"o\" and erase the brackets."
     (org-ctrl-c-ctrl-c)
     (org-github--should-equal-fixture "new-issue-after-create.org")))
 
-(ert-deftest org-github-update-issue ()
+(org-github-deftest update-issue ()
   (with-stubbed-url-retrieve
     (switch-to-buffer "*github-test*")
     (erase-buffer)
@@ -146,7 +156,7 @@ the first \"o\" and erase the brackets."
     (org-ctrl-c-ctrl-c)
     (org-github--should-equal-fixture "new-issue-after-update.org")))
 
-(ert-deftest org-github-update-comment ()
+(org-github-deftest update-comment ()
   (with-stubbed-url-retrieve
     (switch-to-buffer "*github-test*")
     (erase-buffer)
@@ -160,7 +170,7 @@ the first \"o\" and erase the brackets."
     (org-ctrl-c-ctrl-c)
     (org-github--should-equal-fixture "user-issues-expanded-after-comment-update.org")))
 
-(ert-deftest org-github-create-comment ()
+(org-github-deftest create-comment ()
   (with-stubbed-url-retrieve
     (switch-to-buffer "*github-test*")
     (erase-buffer)
@@ -174,7 +184,7 @@ A brand spankin' new comment!")
     (org-ctrl-c-ctrl-c)
     (org-github--should-equal-fixture "user-issues-expanded-after-new-comment.org")))
 
-(ert-deftest org-github-comments-header ()
+(org-github-deftest comments-header ()
   (with-org-snippet "
 * s<point>hosti/org-github
 ** OPEN [[https://github.com/shosti/org-github/issues/1][This is a sample issue]]
@@ -197,7 +207,7 @@ Something
 **** someone"
     (should-not (org-github--comments-header-p (org-element-at-point)))))
 
-(ert-deftest org-github-issue-at-point ()
+(org-github-deftest issue-at-point ()
   (seq-do
    (lambda (args)
      (let ((snippet (car args))
@@ -292,7 +302,7 @@ A comment to mess things up!"
          (body . nil)
          (labels . ["wontfix"]))))))
 
-(ert-deftest org-github-todo ()
+(org-github-deftest todo ()
   (with-stubbed-url-retrieve
     (with-org-snippet "
 * shosti/org-github
@@ -316,7 +326,7 @@ A comment to mess things up!"
       (org-github-todo)
       (should (equal (org-get-todo-state) "OPEN")))))
 
-(ert-deftest org-github-at-new-issue-p ()
+(org-github-deftest at-new-issue-p ()
   (with-org-snippet "
 * shosti/org-github
 :PROPERTIES:
@@ -357,7 +367,7 @@ Organize your Github issues with org-mode
 :END:"
     (should-not (org-github--at-new-issue-p (point)))))
 
-(ert-deftest org-github-at-existing-issue-p ()
+(org-github-deftest at-existing-issue-p ()
   (with-org-snippet "
 * shosti/org-github
 :PROPERTIES:
@@ -396,7 +406,7 @@ Organize your Github issues with org-mode
 :END:"
     (should-not (org-github--at-existing-issue-p (point)))))
 
-(ert-deftest org-github-at-new-comment-p ()
+(org-github-deftest at-new-comment-p ()
   (with-org-snippet "
 ** Issue
 :PROPERTIES:
@@ -434,7 +444,7 @@ A cool <point>comment"
 A cool comment"
     (should-not (org-github--at-new-comment-p (point)))))
 
-(ert-deftest org-github-at-existing-comment-p ()
+(org-github-deftest at-existing-comment-p ()
   (with-org-snippet "
 **** A <point>comment
 :PROPERTIES:
@@ -447,7 +457,7 @@ A cool comment"
 **** A cool <point>comment "
     (should-not (org-github--at-existing-comment-p (point)))))
 
-(ert-deftest org-github-group-and-sort ()
+(org-github-deftest group-and-sort ()
   (let ((got (org-github--group-and-sort-issues
               '[((name . "repo2issue2")
                  (number . 2)

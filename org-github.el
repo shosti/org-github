@@ -65,6 +65,46 @@ If nil, org-github will attempt to use an appropriate value from
   :group 'org-github
   :type 'string)
 
+(defcustom org-github-pandoc-executable
+  (executable-find "pandoc")
+  "Location of a pandoc executable for converting text to and from markdown."
+  :group 'org-github
+  :type 'string)
+
+(defcustom org-github-body-import-function
+  (if org-github-pandoc-executable
+      #'org-github-pandoc-md->org
+    #'identity)
+  "Function to call when importing issue bodies from Github.
+
+Defaults to using pandoc for markdown->org translation, if
+available."
+  :type '(radio (function-item
+                 org-github-pandoc-md->org
+                 :tag "Use pandoc to translate between org-mode and markdown")
+                (function-item
+                 identity
+                 :tag "Don't perform automatic translation")
+                function)
+  :group 'org-github)
+
+(defcustom org-github-body-export-function
+  (if org-github-pandoc-executable
+      #'org-github-pandoc-org->md
+    #'identity)
+  "Function to call when exporting issue bodies to Github.
+
+Defaults to using pandoc for org->markdown translation, if
+available."
+  :type '(radio (function-item
+                 org-github-pandoc-org->md
+                 :tag "Use pandoc to translate between org-mode and markdown")
+                (function-item
+                 identity
+                 :tag "Don't perform automatic translation")
+                function)
+  :group 'org-github)
+
 (defvar org-github-buffer "*github*"
   "Buffer to display Github issues.")
 
@@ -649,13 +689,14 @@ inserted."
                     elem))
          (body
           (s-trim
-           (s-join "\n\n"
-                   (org-element-map body-section 'paragraph
-                     (lambda (para)
-                       (s-trim
-                        (buffer-substring (org-element-property :begin para)
-                                          (org-element-property :end para))))
-                     nil nil 'paragraph)))))
+           (funcall org-github-body-export-function
+                    (s-join "\n\n"
+                            (org-element-map body-section '(paragraph src-block)
+                              (lambda (para)
+                                (s-trim
+                                 (buffer-substring (org-element-property :begin para)
+                                                   (org-element-property :end para))))
+                              nil nil '(paragraph src-block)))))))
     (unless (or (null body) (string= "" body))
       body)))
 
@@ -737,7 +778,25 @@ set."
 (defun org-github--fix-body (body)
   "Post-process BODY (as returned by the Github API) for use with org-github."
   (when body
-    (replace-regexp-in-string "\r" "" body)))
+    (funcall org-github-body-import-function
+             (replace-regexp-in-string "\r" "" body))))
+
+(defun org-github-pandoc-md->org (body)
+  "Translate BODY from markdown to org-mode using pandoc."
+  (org-github--pandoc-translate body "-f markdown_github -t org"))
+
+(defun org-github-pandoc-org->md (body)
+  "Translate BODY from org-mode to markdown using pandoc."
+  (org-github--pandoc-translate body "-f org -t markdown_github"))
+
+(defun org-github--pandoc-translate (body args)
+  "Translate BODY using ARGS as arguments to pandoc."
+  (with-temp-buffer
+    (insert body)
+    (shell-command-on-region (point-min) (point-max)
+                             (format "%s %s" org-github-pandoc-executable args)
+                             nil 'replace)
+    (s-trim (buffer-string))))
 
 (defun org-github--get-access-token ()
   "Get the Github API access token for the user."
