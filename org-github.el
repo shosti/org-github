@@ -119,7 +119,14 @@ If nil, org-github will attempt to use an appropriate value from
             ((org-github--at-existing-comment-p point)
              (org-github--update-comment point))))))
 
+(defun org-github-tags-change ()
+  "Hook function for updating tags on Github after a change."
+  (when (and org-github-mode
+             (org-github--at-existing-issue-p (point)))
+    (org-github--update-labels)))
+
 (add-hook 'org-ctrl-c-ctrl-c-hook #'org-github-update)
+(add-hook 'org-after-tags-change-hook #'org-github-tags-change)
 
 (defun org-github-todo (&optional arg)
   "Change the state of an item.
@@ -169,13 +176,29 @@ See `org-todo' for usage of ARG."
        "PATCH" url data
        (lambda (issue)
          (with-current-buffer buffer
-           (let ((issue-elem (org-github--find-elem-by-url
-                              (cdr (assq 'url issue)))))
-             (save-excursion
-               (goto-char (org-element-property :begin issue-elem))
-               (let ((new-state (upcase (cdr (assq 'state issue)))))
-                 (when (not (equal new-state (org-entry-get (point) "TODO")))
-                   (org-todo new-state)))))))))))
+           (org-github--do-at-issue
+            issue (lambda ()
+                    (let ((new-state (upcase (cdr (assq 'state issue)))))
+                      (when (not (equal new-state
+                                        (org-entry-get (point) "TODO")))
+                        (org-todo new-state)))))))))))
+
+(defun org-github--update-labels ()
+  "Update labels for the Github issue at point."
+  (org-github--assert-at-element-type (point) "issue")
+
+  (let* ((buffer (current-buffer))
+         (issue-url (org-entry-get (point) "url"))
+         (labels (org-github--elem-labels
+                  (org-element-at-point)))
+         (data (json-encode (list (cons 'labels labels)))))
+    (org-github--retrieve
+     "PATCH" issue-url data
+     (lambda (issue)
+       (with-current-buffer buffer
+         (org-github--do-at-issue
+          issue (lambda ()
+                  (org-set-tags-to (org-github--tags issue)))))))))
 
 (defun org-github--group-and-sort-issues (issues)
   "Group ISSUES according to repo and sort by issue number.
@@ -198,6 +221,14 @@ list of issues."
                                       (cdr (assq 'number issue2))))
                                  issues))))
              grouped-issues)))
+
+(defun org-github--do-at-issue (issue fn)
+  "Go to the point in the buffer corresponding to ISSUE and execute FN."
+  (let ((issue-elem (org-github--find-elem-by-url
+                     (cdr (assq 'url issue)))))
+    (save-excursion
+      (goto-char (org-element-property :begin issue-elem))
+      (funcall fn))))
 
 (defun org-github--create-issue (point)
   "Create Github issue, reading the data at POINT.
