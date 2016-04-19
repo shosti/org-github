@@ -223,9 +223,11 @@ Something
 :full_name: shosti/org-github
 :END:
 ** An issue
-With a body<point>"
+With a body<point> and /italic/ text.
+
+And also *bold*."
       . ((title . "An issue")
-         (body . "With a body")
+         (body . "With a body and /italic/ text.\n\nAnd also *bold*.")
          (labels . [])))
 
      ("

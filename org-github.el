@@ -649,10 +649,12 @@ inserted."
                     elem))
          (body
           (s-trim
-           (s-join "\n"
+           (s-join "\n\n"
                    (org-element-map body-section 'paragraph
                      (lambda (para)
-                       (car (org-element-contents para)))
+                       (s-trim
+                        (buffer-substring (org-element-property :begin para)
+                                          (org-element-property :end para))))
                      nil nil 'paragraph)))))
     (unless (or (null body) (string= "" body))
       body)))
