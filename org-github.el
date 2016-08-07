@@ -165,7 +165,20 @@ available."
              (org-github--at-existing-issue-p (point)))
     (org-github--update-labels)))
 
+(defun org-github-open-at-point ()
+  "Open the relevant Github issue/comment at point.
+
+If the point is at an actual link, the link will be followed
+instead."
+  (when (and org-github-mode (not (org-in-regexp org-any-link-re)))
+    (let ((type (org-entry-get (point) "og-type"))
+          (url (org-entry-get (point) "html_url")))
+      (when (and type url)
+        (browse-url url)
+        t))))
+
 (add-hook 'org-ctrl-c-ctrl-c-hook #'org-github-update)
+(add-hook 'org-open-at-point-functions #'org-github-open-at-point)
 (add-hook 'org-after-tags-change-hook #'org-github-tags-change)
 
 (defun org-github-todo (&optional arg)
@@ -767,7 +780,7 @@ set."
                                  (when val
                                    (cons (symbol-name prop)
                                          (format "%s" val)))))
-                             (append '(url created_at updated_at) extra-props)))))
+                             (append '(url html_url created_at updated_at) extra-props)))))
 
 (defun org-github--tags (object)
   "Get tags for OBJECT (returned by the Github API)."
@@ -782,11 +795,11 @@ set."
              (replace-regexp-in-string "\r" "" body))))
 
 (defun org-github-pandoc-md->org (body)
-  "Translate BODY from markdown to org-mode using pandoc."
+  "Translate BODY from markdown to ‘org-mode’ using pandoc."
   (org-github--pandoc-translate body "-f markdown_github -t org"))
 
 (defun org-github-pandoc-org->md (body)
-  "Translate BODY from org-mode to markdown using pandoc."
+  "Translate BODY from ‘org-mode’ to markdown using pandoc."
   (org-github--pandoc-translate body "-f org -t markdown_github"))
 
 (defun org-github--pandoc-translate (body args)

@@ -2,6 +2,7 @@
 :PROPERTIES:
 :og-type:  repo
 :url:      https://api.github.com/repos/shosti/org-github
+:html_url: https://github.com/shosti/org-github
 :created_at: 2015-09-28T00:51:11Z
 :updated_at: 2015-10-04T23:58:50Z
 :full_name: shosti/org-github
@@ -11,6 +12,7 @@ Organize your Github issues with org-mode
 :PROPERTIES:
 :og-type:  issue
 :url:      https://api.github.com/repos/shosti/org-github/issues/2
+:html_url: https://github.com/shosti/org-github/issues/2
 :created_at: 2015-10-04T23:59:09Z
 :updated_at: 2015-10-04T23:59:09Z
 :number:   2
@@ -21,6 +23,7 @@ Organize your Github issues with org-mode
 :PROPERTIES:
 :og-type:  issue
 :url:      https://api.github.com/repos/shosti/org-github/issues/1
+:html_url: https://github.com/shosti/org-github/issues/1
 :created_at: 2015-09-28T01:01:46Z
 :updated_at: 2015-09-28T01:02:36Z
 :number:   1
@@ -33,6 +36,7 @@ Something
 :PROPERTIES:
 :og-type:  comment
 :url:      https://api.github.com/repos/shosti/org-github/issues/comments/143610036
+:html_url: https://github.com/shosti/org-github/issues/1#issuecomment-143610036
 :created_at: 2015-09-28T01:01:49Z
 :updated_at: 2016-03-14T03:00:24Z
 :END:
@@ -41,6 +45,7 @@ A comment with some more details
 :PROPERTIES:
 :og-type:  comment
 :url:      https://api.github.com/repos/shosti/org-github/issues/comments/152905891
+:html_url: https://github.com/shosti/org-github/issues/1#issuecomment-152905891
 :created_at: 2015-11-02T04:00:40Z
 :updated_at: 2015-11-02T04:01:03Z
 :END:

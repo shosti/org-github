@@ -2,6 +2,7 @@
 :PROPERTIES:
 :og-type:  repo
 :url:      https://api.github.com/repos/shosti/org-github
+:html_url: https://github.com/shosti/org-github
 :created_at: 2015-09-28T00:51:11Z
 :updated_at: 2015-10-04T23:58:50Z
 :full_name: shosti/org-github
@@ -11,6 +12,7 @@ Organize your Github issues with org-mode
 :PROPERTIES:
 :og-type:  issue
 :url:      https://api.github.com/repos/shosti/org-github/issues/2
+:html_url: https://github.com/shosti/org-github/issues/2
 :created_at: 2015-10-04T23:59:09Z
 :updated_at: 2015-11-17T22:19:16Z
 :number:   2
@@ -22,6 +24,7 @@ Organize your Github issues with org-mode
 :PROPERTIES:
 :og-type:  comment
 :url:      https://api.github.com/repos/shosti/org-github/issues/comments/157616385
+:html_url: https://github.com/shosti/org-github/issues/2#issuecomment-157616385
 :created_at: 2015-11-18T06:26:22Z
 :updated_at: 2015-11-18T06:26:22Z
 :END:
@@ -30,6 +33,7 @@ Comment 1
 :PROPERTIES:
 :og-type:  comment
 :url:      https://api.github.com/repos/shosti/org-github/issues/comments/157616410
+:html_url: https://github.com/shosti/org-github/issues/2#issuecomment-157616410
 :created_at: 2015-11-18T06:26:25Z
 :updated_at: 2015-11-18T06:26:25Z
 :END:
